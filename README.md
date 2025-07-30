@@ -398,6 +398,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ---
 
 📋 **Planning Documents**: 
+- [Project Architecture](PROJECT_ARCHITECTURE.md) - **Complete system architecture and implementation roadmap**
 - [Requirements](requirements.md) - Detailed technical specifications
 - [Scraping Plan](SCRAPING_PLAN.md) - Implementation roadmap for data collection
 - [External Cron Setup](EXTERNAL_CRON_SETUP.md) - Complete guide for configuring external cron services
