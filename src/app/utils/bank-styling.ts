@@ -9,13 +9,13 @@ export function getBankStyling(code: string): BankStyling {
 		case 'combank':
 			return {
 				bgGradient: 'from-blue-600 to-blue-700',
-				icon: '🏦',
+				icon: '🟦',
 				accent: 'blue'
 			};
 		case 'ndb':
 			return {
 				bgGradient: 'from-red-600 to-red-700',
-				icon: '🌱',
+				icon: '🔴',
 				accent: 'red'
 			};
 		case 'sampath':
@@ -33,7 +33,7 @@ export function getBankStyling(code: string): BankStyling {
 		default:
 			return {
 				bgGradient: 'from-gray-600 to-gray-700',
-				icon: '🏢',
+				icon: '*️⃣',
 				accent: 'gray'
 			};
 	}
