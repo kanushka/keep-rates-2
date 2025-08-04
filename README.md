@@ -91,8 +91,8 @@ Keep Rates is a modern web application that tracks USD/LKR exchange rates from m
    DATABASE_URL="postgresql://username:password@localhost:5432/keeprates"
    
    # NextAuth.js
-   NEXTAUTH_SECRET="your-secret-key"
-   NEXTAUTH_URL="http://localhost:3000"
+   AUTH_SECRET="your-secret-key"
+   AUTH_URL="http://localhost:3000"
    
    # OAuth Providers (optional)
    GOOGLE_CLIENT_ID="your-google-client-id"
@@ -309,8 +309,8 @@ To add support for a new bank:
 | Variable | Description | Required | Default |
 |----------|-------------|----------|---------|
 | `DATABASE_URL` | PostgreSQL connection string | Yes | - |
-| `NEXTAUTH_SECRET` | NextAuth.js secret key | Yes | - |
-| `NEXTAUTH_URL` | Application URL | Yes | http://localhost:3000 |
+| `AUTH_SECRET` | NextAuth.js secret key | Yes | - |
+| `AUTH_URL` | Application URL | Yes | http://localhost:3000 |
 | `GOOGLE_CLIENT_ID` | Google OAuth client ID | No | - |
 | `GOOGLE_CLIENT_SECRET` | Google OAuth client secret | No | - |
 | `RESEND_API_KEY` | Resend email service API key | Yes | - |

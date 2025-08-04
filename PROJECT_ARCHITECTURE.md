@@ -304,8 +304,8 @@ src/app/
 DATABASE_URL="postgresql://localhost:5432/keeprates_dev"
 
 # Authentication
-NEXTAUTH_SECRET="dev-secret-key"
-NEXTAUTH_URL="http://localhost:3000"
+AUTH_SECRET="dev-secret-key"
+AUTH_URL="http://localhost:3000"
 
 # External Services
 SCRAPING_API_KEY="dev-api-key"
@@ -319,8 +319,8 @@ RESEND_API_KEY="resend-dev-key"
 DATABASE_URL="postgresql://neon-prod-connection"
 
 # Authentication
-NEXTAUTH_SECRET="production-secret"
-NEXTAUTH_URL="https://keep-rates-2.vercel.app"
+AUTH_SECRET="production-secret"
+AUTH_URL="https://keep-rates-2.vercel.app"
 
 # External Services  
 SCRAPING_API_KEY="secure-production-key"

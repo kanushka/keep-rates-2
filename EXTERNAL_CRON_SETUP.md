@@ -26,7 +26,7 @@ UPSTASH_REDIS_REST_URL="https://your-redis-instance.upstash.io"
 UPSTASH_REDIS_REST_TOKEN="your-redis-auth-token"
 
 # Application URL
-NEXTAUTH_URL="https://your-app.vercel.app"
+AUTH_URL="https://your-app.vercel.app"
 ```
 
 ### 2. Upstash Redis Setup
