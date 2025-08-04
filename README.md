@@ -104,8 +104,7 @@ Keep Rates is a modern web application that tracks USD/LKR exchange rates from m
    
        # Web Scraping & Rate Limiting
     SCRAPING_API_KEY="your-secure-api-key-for-external-cron"
-    UPSTASH_REDIS_REST_URL="your-upstash-redis-url"
-    UPSTASH_REDIS_REST_TOKEN="your-upstash-redis-token"
+    REDIS_URL="redis://localhost:6379"
    ```
 
 4. **Set up the database**
