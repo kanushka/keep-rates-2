@@ -9,9 +9,8 @@ export class CBSLScraper extends ExchangeRateScraper {
 			timeout: 15000,
 			retryAttempts: 3,
 			selectors: {
-				rateSection: '.economy-snapshot, .exchange-rate, .rate-display',
-				ttBuyRate: 'text*="TT Buy"',
-				ttSellRate: 'text*="TT Sell"'
+				rateTable: '.economy-snapshot, .exchange-rate, .rate-display',
+				currency: 'text*="TT Buy"'
 			}
 		});
 	}
@@ -142,8 +141,8 @@ export class CBSLScraper extends ExchangeRateScraper {
 					const ttSellMatch = fullText.match(/TT Sell[\s\S]{0,50}?(\d{2,3}\.\d{2,4})/i);
 
 					if (ttBuyMatch && ttSellMatch) {
-						const buyRate = parseFloat(ttBuyMatch[1]);
-						const sellRate = parseFloat(ttSellMatch[1]);
+						const buyRate = parseFloat(ttBuyMatch[1] || '0');
+						const sellRate = parseFloat(ttSellMatch[1] || '0');
 						
 						if (buyRate >= 250 && buyRate <= 400 && sellRate >= 250 && sellRate <= 400) {
 							debugData.extractedRates.buy = buyRate;
@@ -155,8 +154,8 @@ export class CBSLScraper extends ExchangeRateScraper {
 					// Alternative: Look for "Exchange Rate USD/LKR" section
 					const exchangeRateMatch = fullText.match(/Exchange Rate USD\/LKR[\s\S]{0,300}?(\d{2,3}\.\d{2,4})[\s\S]{0,100}?(\d{2,3}\.\d{2,4})/i);
 					if (exchangeRateMatch && !debugData.extractedRates.buy) {
-						const rate1 = parseFloat(exchangeRateMatch[1]);
-						const rate2 = parseFloat(exchangeRateMatch[2]);
+						const rate1 = parseFloat(exchangeRateMatch[1] || '0');
+						const rate2 = parseFloat(exchangeRateMatch[2] || '0');
 						
 						if (rate1 >= 250 && rate1 <= 400 && rate2 >= 250 && rate2 <= 400) {
 							// Assume first is buy, second is sell (buy < sell)
@@ -193,7 +192,6 @@ export class CBSLScraper extends ExchangeRateScraper {
 							buyingRate: buy,
 							sellingRate: sell,
 							telegraphicBuyingRate: buy, // CBSL TT Buy rate
-							indicativeRate: null, // CBSL homepage doesn't show indicative rate
 							timestamp: new Date(),
 							isValid: true,
 							source: this.config.url
