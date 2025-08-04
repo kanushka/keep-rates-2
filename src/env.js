@@ -31,6 +31,7 @@ export const env = createEnv({
 		REDIS_URL: z.string().url().optional(),
 		RESEND_API_KEY: z.string().optional(),
 		FROM_EMAIL: z.string().email().optional(),
+		SKIP_RATE_LIMIT: z.string().optional(),
 	},
 
 	/**
@@ -57,6 +58,7 @@ export const env = createEnv({
 		REDIS_URL: process.env.REDIS_URL,
 		RESEND_API_KEY: process.env.RESEND_API_KEY,
 		FROM_EMAIL: process.env.FROM_EMAIL,
+		SKIP_RATE_LIMIT: process.env.SKIP_RATE_LIMIT,
 	},
 	/**
 	 * Run `build` or `dev` with `SKIP_ENV_VALIDATION` to skip env validation. This is especially

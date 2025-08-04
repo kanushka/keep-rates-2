@@ -37,14 +37,21 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 			);
 		}
 
-		// 2. Check rate limiting
+		// 2. Check rate limiting (skip if SKIP_RATE_LIMIT is set for testing)
+		const skipRateLimit = process.env.SKIP_RATE_LIMIT === 'true';
+		if (skipRateLimit) {
+			console.log('⚠️ Rate limiting SKIPPED for testing');
+		}
+		
 		const rateLimiter = getScrapingRateLimiter();
 		const clientId = 'scraping_trigger'; // Single identifier for all scraping requests
 		
-		const rateLimit = await rateLimiter.checkLimit(clientId);
+		const rateLimit = skipRateLimit 
+			? { allowed: true, remaining: 999, resetTime: Date.now() + 3600000 }
+			: await rateLimiter.checkLimit(clientId);
 		
 		if (!rateLimit.allowed) {
-			console.warn(`⏰ Rate limit exceeded. Next allowed in ${rateLimit.retryAfter}s`);
+			console.warn(`⏰ Rate limit exceeded. Next allowed in ${rateLimit.retryAfter || 'unknown'}s`);
 			
 			const response = NextResponse.json(
 				{
@@ -60,7 +67,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 			response.headers.set('X-RateLimit-Limit', '1');
 			response.headers.set('X-RateLimit-Remaining', rateLimit.remaining.toString());
 			response.headers.set('X-RateLimit-Reset', rateLimit.resetTime.toString());
-			if (rateLimit.retryAfter) {
+			if (typeof rateLimit.retryAfter === 'number' && rateLimit.retryAfter > 0) {
 				response.headers.set('Retry-After', rateLimit.retryAfter.toString());
 			}
 

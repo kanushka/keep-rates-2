@@ -88,7 +88,8 @@ jobs:
           response=$(curl -s -w "HTTPSTATUS:%{http_code}" \
             -X POST \
             -H "Content-Type: application/json" \
-            -H "x-api-key: ${{ secrets.SCRAPING_API_KEY }}" \
+            -H "X-API-Key: ${{ secrets.SCRAPING_API_KEY }}" \
+            -d '{"async": true}' \
             "${{ secrets.APP_URL }}/api/scrape/trigger")
           
           http_code=$(echo $response | tr -d '\n' | sed -e 's/.*HTTPSTATUS://')
@@ -169,7 +170,10 @@ Schedule:
 Request Method: POST
 Request Headers:
   Content-Type: application/json
-  x-api-key: your-scraping-api-key-here
+  X-API-Key: your-scraping-api-key-here
+
+Request Body:
+  {"async": true}
 
 Timezone: Asia/Colombo
 ```
@@ -205,8 +209,10 @@ Timezone: Asia/Colombo
    Cron Expression: 0 9-17 * * 1-5
    Method: POST
    Headers:
-     x-api-key: your-scraping-api-key
+     X-API-Key: your-scraping-api-key
      Content-Type: application/json
+   Body:
+     {"async": true}
    Timezone: Asia/Colombo
    ```
 
@@ -230,7 +236,8 @@ Timezone: Asia/Colombo
    - Type: HTTP(s)
    - URL: `https://your-app.vercel.app/api/scrape/trigger`
    - Method: POST
-   - Custom HTTP Headers: `x-api-key:your-api-key`
+   - Custom HTTP Headers: `X-API-Key:your-api-key,Content-Type:application/json`
+   - Post Data: `{"async": true}`
    - Monitoring Interval: 60 minutes
    - Monitor Timeout: 30 seconds
 
@@ -248,7 +255,10 @@ Timezone: Asia/Colombo
 # Test the API endpoint directly
 curl -X POST \
   -H "Content-Type: application/json" \
-  -H "x-api-key: YOUR_API_KEY" \
+  -H "X-API-Key: YOUR_API_KEY" \
+  -d '{"async": true}' \
+  --max-time 30 \
+  --retry 2 \
   https://your-app.vercel.app/api/scrape/trigger
 ```
 
@@ -268,12 +278,16 @@ Expected response:
 ```bash
 # Test rate limiting by calling twice quickly
 curl -X POST \
-  -H "x-api-key: YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: YOUR_API_KEY" \
+  -d '{"async": true}' \
   https://your-app.vercel.app/api/scrape/trigger
 
 # Immediately call again (should be rate limited)
 curl -X POST \
-  -H "x-api-key: YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: YOUR_API_KEY" \
+  -d '{"async": true}' \
   https://your-app.vercel.app/api/scrape/trigger
 ```
 
@@ -281,10 +295,21 @@ Expected second response:
 ```json
 {
   "error": "Rate limit exceeded",
-  "message": "Only 1 call per hour allowed",
-  "nextAllowedAt": "2024-01-15T11:30:00.000Z"
+  "message": "Scraping can only be triggered once per hour",
+  "retryAfter": 3598,
+  "resetTime": 1704711000000
 }
 ```
+
+### 3. Skip Rate Limiting for Testing
+
+For development and testing, you can bypass rate limiting by setting:
+
+```env
+SKIP_RATE_LIMIT=true
+```
+
+**⚠️ Warning**: Only use this in development! Never set this in production.
 
 ## Monitoring and Maintenance
 
@@ -340,7 +365,11 @@ If automatic scraping fails, you can manually trigger via curl:
 
 ```bash
 curl -X POST \
-  -H "x-api-key: $SCRAPING_API_KEY" \
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: $SCRAPING_API_KEY" \
+  -d '{"async": true}' \
+  --max-time 30 \
+  --retry 2 \
   https://your-app.vercel.app/api/scrape/trigger
 ```
 

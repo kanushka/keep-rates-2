@@ -1,4 +1,5 @@
-import puppeteer, { type Browser } from 'puppeteer';
+import puppeteer, { type Browser } from 'puppeteer-core';
+import chromium from '@sparticuz/chromium';
 import { ExchangeRateScraper, type ScrapingResult, type ExchangeRateData } from './types';
 
 export class CommercialBankScraper extends ExchangeRateScraper {
@@ -26,16 +27,37 @@ export class CommercialBankScraper extends ExchangeRateScraper {
 			try {
 				console.log(`[ComBank] Scraping attempt ${attempts}/${this.config.retryAttempts}`);
 				
-				// Launch browser
-				browser = await puppeteer.launch({
-					headless: true,
-					args: [
-						'--no-sandbox',
-						'--disable-setuid-sandbox',
-						'--disable-dev-shm-usage',
-						'--disable-gpu'
-					]
-				});
+				// Launch browser with serverless configuration
+				const isServerless = process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME;
+				console.log(`[ComBank] Browser mode: ${isServerless ? 'Serverless (Vercel/AWS)' : 'Local Development'}`);
+				
+				if (isServerless) {
+					// Serverless environment (Vercel/AWS Lambda)
+					browser = await puppeteer.launch({
+						args: [
+							...chromium.args,
+							'--hide-scrollbars',
+							'--disable-web-security',
+							'--disable-features=VizDisplayCompositor',
+						],
+						defaultViewport: { width: 1280, height: 720 },
+						executablePath: await chromium.executablePath(),
+						headless: true,
+					});
+				} else {
+					// Local development - use system Chrome or downloaded Chrome
+					const { executablePath } = await import('puppeteer');
+					browser = await puppeteer.launch({
+						args: [
+							'--no-sandbox',
+							'--disable-setuid-sandbox',
+							'--disable-dev-shm-usage',
+							'--disable-gpu'
+						],
+						executablePath: process.env.CHROME_EXECUTABLE_PATH || executablePath(),
+						headless: true,
+					});
+				}
 
 				const page = await browser.newPage();
 				

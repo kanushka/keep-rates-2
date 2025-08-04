@@ -17,13 +17,13 @@
 		"preview": "next build && next start",
 		"start": "next start",
 		"typecheck": "tsc --noEmit",
-		
 		"test:scraping": "tsx src/scripts/test-scraping-api.ts",
 		"test:combank": "tsx src/scripts/test-combank-scraper.ts",
 		"check:db": "tsx src/scripts/check-database.ts"
 	},
 	"dependencies": {
 		"@auth/drizzle-adapter": "^1.7.2",
+		"@sparticuz/chromium": "^138.0.2",
 		"@t3-oss/env-nextjs": "^0.12.0",
 		"@tanstack/react-query": "^5.69.0",
 		"@trpc/client": "^11.0.0",
@@ -35,6 +35,7 @@
 		"next-auth": "5.0.0-beta.25",
 		"postgres": "^3.4.4",
 		"puppeteer": "^24.15.0",
+		"puppeteer-core": "^24.15.0",
 		"react": "^19.0.0",
 		"react-dom": "^19.0.0",
 		"server-only": "^0.0.1",
