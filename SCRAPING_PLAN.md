@@ -165,16 +165,18 @@ export class SampathBankScraper extends ExchangeRateScraper {
 
 ---
 
-### 4. Central Bank of Sri Lanka (CBSL)
-**URL**: https://www.cbsl.gov.lk/en/rates-and-indicators/exchange-rates/usd-lkr-Indicative-rate-chart
-**Function**: `scrapeCBSLRates()`
+### 4. Central Bank of Sri Lanka (CBSL) 🛡️ PROTECTED
+**URL**: https://www.cbsl.gov.lk/ (homepage with TT rates)
+**Function**: `CBSLScraper` 
 **Update Frequency**: Daily (official reference rate)
+**Status**: 🛡️ ANTI-BOT PROTECTED - Sophisticated anti-scraping measures detected
 
 #### Implementation Details:
-- **Target Section**: USD/LKR indicative rate chart/data
-- **Data Points**: Official Indicative Rate (no buying/selling split)
-- **Scraping Method**: Puppeteer with chart/table parsing
-- **Purpose**: Reference rate for validation and official comparison
+- **Target Section**: Homepage "Sri Lankan Economy SNAPSHOT" (TT Buy: 297.4318, TT Sell: 305.0923)
+- **Data Points**: TT Buy Rate, TT Sell Rate
+- **Scraping Method**: 🛡️ **BLOCKED** - Anti-bot protection prevents automated access
+- **Challenges**: **ANTI-SCRAPING PROTECTION** - Sophisticated measures block Puppeteer access
+- **Purpose**: Official reference rates for validation and comparison
 
 #### Function Structure:
 ```typescript
@@ -642,7 +644,7 @@ jobs:
 1. ✅ **Commercial Bank scraper** - PRODUCTION READY
 2. ✅ **NDB Bank scraper** - PRODUCTION READY  
 3. ✅ **Sampath Bank scraper** - PRODUCTION READY
-4. ⏳ CBSL scraper - TODO
+4. ⚠️ **CBSL scraper** - REQUIRES ADVANCED DYNAMIC CONTENT HANDLING
 
 ### Phase 3: Orchestration & Scheduling ✅ COMPLETED
 1. ✅ Created main `ScrapingService` class with parallel execution
@@ -687,7 +689,20 @@ curl -X POST \
 ```
 
 ### Next Steps:
-1. Implement CBSL scraper for reference rates
+1. **CBSL scraper enhancement** - Implement JavaScript/AJAX handling for dynamic rates
 2. Add frontend rate display components  
 3. Implement email notification system
-4. Add rate change alerts and historical charts 
+4. Add rate change alerts and historical charts
+
+### CBSL Implementation Strategy (Future):
+The CBSL website has sophisticated anti-bot protection that blocks automated access. To implement this properly, consider:
+
+1. **Official API Partnership**: Contact CBSL for official data access or API credentials
+2. **Advanced Anti-Detection**: Use undetected-chromedriver or similar anti-detection tools
+3. **Proxy Rotation**: Implement rotating IP addresses and user agents
+4. **Manual Integration**: Partner with CBSL or use official APIs if available
+5. **Alternative Sources**: Use third-party financial data providers that aggregate CBSL rates
+
+**Current Status**: CBSL rates are publicly visible but protected against automated scraping.
+
+For now, the 3 commercial banks provide comprehensive market coverage for practical use. 

@@ -1,6 +1,7 @@
 import { CommercialBankScraper } from './commercial-bank';
 import { NDBBankScraper } from './ndb-bank';
 import { SampathBankScraper } from './sampath-bank';
+import { CBSLScraper } from './cbsl';
 import type { ScrapingResult, ExchangeRateData } from './types';
 import { db } from '~/server/db';
 import { exchangeRates, scrapeLogs } from '~/server/db/schema';
@@ -32,7 +33,8 @@ export class ScrapingService {
 		this.scrapers.set('ndb', new NDBBankScraper());
 		this.scrapers.set('sampath', new SampathBankScraper());
 		
-		// TODO: Add other scrapers when implemented
+		// TODO: CBSL scraper - requires advanced anti-bot bypass techniques
+		// The CBSL website has sophisticated anti-scraping protection
 		// this.scrapers.set('cbsl', new CBSLScraper());
 	}
 
