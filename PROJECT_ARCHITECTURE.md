@@ -301,7 +301,7 @@ src/app/
 ### **Development**
 ```env
 # Database
-DATABASE_URL="postgresql://localhost:5432/keeprates_dev"
+STORAGE_DATABASE_URL="postgresql://localhost:5432/keeprates_dev"
 
 # Authentication
 AUTH_SECRET="dev-secret-key"
@@ -316,7 +316,7 @@ RESEND_API_KEY="resend-dev-key"
 ### **Production**
 ```env
 # Database (Neon)
-DATABASE_URL="postgresql://neon-prod-connection"
+STORAGE_DATABASE_URL="postgresql://neon-prod-connection"
 
 # Authentication
 AUTH_SECRET="production-secret"

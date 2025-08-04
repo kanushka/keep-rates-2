@@ -88,7 +88,7 @@ Keep Rates is a modern web application that tracks USD/LKR exchange rates from m
    Configure the following variables in `.env`:
    ```env
    # Database
-   DATABASE_URL="postgresql://username:password@localhost:5432/keeprates"
+   STORAGE_DATABASE_URL="postgresql://username:password@localhost:5432/keeprates"
    
    # NextAuth.js
    AUTH_SECRET="your-secret-key"
@@ -308,7 +308,7 @@ To add support for a new bank:
 
 | Variable | Description | Required | Default |
 |----------|-------------|----------|---------|
-| `DATABASE_URL` | PostgreSQL connection string | Yes | - |
+| `STORAGE_DATABASE_URL` | PostgreSQL connection string | Yes | - |
 | `AUTH_SECRET` | NextAuth.js secret key | Yes | - |
 | `AUTH_URL` | Application URL | Yes | http://localhost:3000 |
 | `GOOGLE_CLIENT_ID` | Google OAuth client ID | No | - |
