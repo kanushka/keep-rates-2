@@ -4,13 +4,14 @@ import { api } from "~/trpc/server";
 import { getBankStyling } from "~/app/utils/bank-styling";
 
 interface BankPageProps {
-	params: {
+	params: Promise<{
 		code: string;
-	};
+	}>;
 }
 
 export default async function BankPage({ params }: BankPageProps) {
-	const bank = await api.banks.getByCode({ code: params.code });
+	const { code } = await params;
+	const bank = await api.banks.getByCode({ code });
 
 	if (!bank) {
 		notFound();

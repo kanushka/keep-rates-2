@@ -146,8 +146,9 @@ export const exchangeRates = createTable(
 			.integer()
 			.notNull()
 			.references(() => banks.id),
-		buyingRate: d.numeric({ precision: 10, scale: 4 }), // Can be NULL for CBSL (indicative rate only)
-		sellingRate: d.numeric({ precision: 10, scale: 4 }), // Can be NULL for CBSL
+		buyingRate: d.numeric({ precision: 10, scale: 4 }), // Currency buying rate
+		sellingRate: d.numeric({ precision: 10, scale: 4 }), // Currency selling rate
+		telegraphicBuyingRate: d.numeric({ precision: 10, scale: 4 }), // Telegraphic transfer buying rate
 		indicativeRate: d.numeric({ precision: 10, scale: 4 }), // For CBSL and reference purposes
 		currencyPair: d.varchar({ length: 10 }).default("USD/LKR").notNull(),
 		scrapedAt: d.timestamp({ withTimezone: true }).notNull(), // When the rate was scraped
