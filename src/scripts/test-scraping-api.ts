@@ -41,7 +41,7 @@ async function testScrapingAPI() {
 				'X-API-Key': apiKey
 			},
 			body: JSON.stringify({
-				banks: ['combank'], // Only test ComBank for now
+				banks: ['combank', 'ndb', 'sampath'], // Only test ComBank for now
 				async: false // Sync for testing
 			})
 		});

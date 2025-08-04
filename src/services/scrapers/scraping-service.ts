@@ -1,5 +1,6 @@
 import { CommercialBankScraper } from './commercial-bank';
 import { NDBBankScraper } from './ndb-bank';
+import { SampathBankScraper } from './sampath-bank';
 import type { ScrapingResult, ExchangeRateData } from './types';
 import { db } from '~/server/db';
 import { exchangeRates, scrapeLogs } from '~/server/db/schema';
@@ -29,9 +30,9 @@ export class ScrapingService {
 		// Initialize all bank scrapers
 		this.scrapers.set('combank', new CommercialBankScraper());
 		this.scrapers.set('ndb', new NDBBankScraper());
+		this.scrapers.set('sampath', new SampathBankScraper());
 		
 		// TODO: Add other scrapers when implemented
-		// this.scrapers.set('sampath', new SampathBankScraper());
 		// this.scrapers.set('cbsl', new CBSLScraper());
 	}
 

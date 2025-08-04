@@ -6,105 +6,160 @@ This document outlines the detailed implementation plan for scraping USD/LKR exc
 
 ## Data Sources
 
-### 1. Commercial Bank of Ceylon
+### 1. Commercial Bank of Ceylon ✅ IMPLEMENTED
 **URL**: https://www.combank.lk/rates-tariff#exchange-rates
-**Function**: `scrapeCommercialBankRates()`
-**Update Frequency**: Every 2 hours during banking hours
+**Function**: `CommercialBankScraper`
+**Update Frequency**: Every hour (via external cron)
 
 #### Implementation Details:
 - **Target Section**: Exchange rates table/section
-- **Data Points**: USD Buying Rate, USD Selling Rate
-- **Scraping Method**: Puppeteer with DOM selectors
-- **Challenges**: May require handling anchor navigation (#exchange-rates)
+- **Data Points**: USD Currency Buying Rate, USD Currency Selling Rate, **USD Telegraphic Transfers Buying Rate**
+- **Scraping Method**: Puppeteer with DOM table parsing and serverless support (@sparticuz/chromium)
+- **Challenges**: ✅ SOLVED - Anchor navigation, multiple rate types in single row
+- **Status**: PRODUCTION READY
 
 #### Function Structure:
 ```typescript
-export class CommercialBankScraper implements ExchangeRateScraper {
-  bankId = 'combank';
-  bankName = 'Commercial Bank of Ceylon';
-  baseUrl = 'https://www.combank.lk/rates-tariff#exchange-rates';
+export class CommercialBankScraper extends ExchangeRateScraper {
+  constructor() {
+    super('combank', {
+      url: 'https://www.combank.lk/rates-tariff#exchange-rates',
+      timeout: 30000,
+      retryAttempts: 3
+    });
+  }
 
-  async scrapeRates(): Promise<ExchangeRateData> {
-    // 1. Navigate to rates page
-    // 2. Wait for exchange rates section to load
-    // 3. Locate USD row in exchange rates table
-    // 4. Extract buying and selling rates
-    // 5. Validate data format
-    // 6. Return structured data
+  async scrape(): Promise<ScrapingResult> {
+    // ✅ IMPLEMENTED:
+    // 1. Launch Puppeteer with serverless/local detection
+    // 2. Navigate to rates page with bot detection avoidance
+    // 3. Wait for exchange rates table to load
+    // 4. Parse USD row from table with comprehensive selectors
+    // 5. Extract 6 rates: Currency Buy/Sell, Demand Draft Buy/Sell, Telegraphic Buy/Sell
+    // 6. Validate data format and ranges
+    // 7. Return structured data with all three key rates
   }
 }
 ```
 
-#### Expected Data Structure:
+#### Actual Data Structure (IMPLEMENTED):
 ```json
 {
-  "bankId": "combank",
-  "buyingRate": 299.50,
-  "sellingRate": 309.50,
-  "scrapedAt": "2024-01-15T10:30:00Z",
+  "bankCode": "combank",
+  "currencyPair": "USD/LKR",
+  "buyingRate": 296.05,
+  "sellingRate": 304.50,
+  "telegraphicBuyingRate": 298.00,
+  "indicativeRate": null,
+  "timestamp": "2025-08-04T10:05:57.812Z",
+  "isValid": true,
   "source": "https://www.combank.lk/rates-tariff#exchange-rates"
 }
 ```
 
 ---
 
-### 2. National Development Bank (NDB)
+### 2. National Development Bank (NDB) ✅ IMPLEMENTED
 **URL**: https://www.ndbbank.com/rates/exchange-rates
-**Function**: `scrapeNDBBankRates()`
-**Update Frequency**: Every 2 hours during banking hours
+**Function**: `NDBBankScraper`
+**Update Frequency**: Every hour (via external cron)
 
 #### Implementation Details:
-- **Target Section**: Exchange rates page
-- **Data Points**: USD Buying Rate, USD Selling Rate
-- **Scraping Method**: Puppeteer with table parsing
-- **Challenges**: May have dynamic content loading
+- **Target Section**: Exchange rates page table
+- **Data Points**: USD Currency Buying Rate, USD Currency Selling Rate, **USD Telegraphic Transfers Buying Rate**
+- **Scraping Method**: Puppeteer with table parsing and serverless support
+- **Challenges**: ✅ SOLVED - Dynamic content loading, multiple rate formats
+- **Status**: PRODUCTION READY
 
-#### Function Structure:
+#### Function Structure (IMPLEMENTED):
 ```typescript
-export class NDBBankScraper implements ExchangeRateScraper {
-  bankId = 'ndb';
-  bankName = 'National Development Bank';
-  baseUrl = 'https://www.ndbbank.com/rates/exchange-rates';
-
-  async scrapeRates(): Promise<ExchangeRateData> {
-    // 1. Navigate to exchange rates page
-    // 2. Wait for rates table to load
-    // 3. Find USD currency row
-    // 4. Extract buying and selling columns
-    // 5. Parse numeric values
-    // 6. Return structured data
+export class NDBBankScraper extends ExchangeRateScraper {
+  constructor() {
+    super('ndb', {
+      url: 'https://www.ndbbank.com/rates/exchange-rates',
+      timeout: 15000,
+      retryAttempts: 3
+    });
   }
+
+  async scrape(): Promise<ScrapingResult> {
+    // ✅ IMPLEMENTED:
+    // 1. Launch Puppeteer with serverless/local detection
+    // 2. Navigate to exchange rates page
+    // 3. Wait for rates table to load
+    // 4. Parse all tables for USD currency row
+    // 5. Extract 6 rates from row: Currency Buy/Sell, Demand Draft Buy/Sell, Telegraphic Buy/Sell
+    // 6. Validate data format and ranges
+    // 7. Return structured data with telegraphic buying rate
+  }
+}
+```
+
+#### Actual Data Structure (IMPLEMENTED):
+```json
+{
+  "bankCode": "ndb",
+  "currencyPair": "USD/LKR", 
+  "buyingRate": 298.00,
+  "sellingRate": 304.50,
+  "telegraphicBuyingRate": 298.00,
+  "indicativeRate": null,
+  "timestamp": "2025-08-04T10:05:56.610Z",
+  "isValid": true,
+  "source": "https://www.ndbbank.com/rates/exchange-rates"
 }
 ```
 
 ---
 
-### 3. Sampath Bank
+### 3. Sampath Bank ✅ IMPLEMENTED
 **URL**: https://www.sampath.lk/rates-and-charges?activeTab=exchange-rates
-**Function**: `scrapeSampathBankRates()`
-**Update Frequency**: Every 2 hours during banking hours
+**Function**: `SampathBankScraper`
+**Update Frequency**: Every hour (via external cron)
 
 #### Implementation Details:
-- **Target Section**: Exchange rates tab
-- **Data Points**: USD Buying Rate, USD Selling Rate
-- **Scraping Method**: Puppeteer with tab navigation
-- **Challenges**: Requires clicking on exchange-rates tab
+- **Target Section**: Exchange rates tab (auto-activated by URL parameter)
+- **Data Points**: USD T/T Buying Rate, USD T/T Selling Rate, **USD Telegraphic Transfers Buying Rate**
+- **Scraping Method**: Puppeteer with scroll-to-content and table parsing
+- **Challenges**: ✅ SOLVED - Content not visible until scroll, multiple tables on page, filter out interest rate tables
+- **Status**: PRODUCTION READY
 
-#### Function Structure:
+#### Function Structure (IMPLEMENTED):
 ```typescript
-export class SampathBankScraper implements ExchangeRateScraper {
-  bankId = 'sampath';
-  bankName = 'Sampath Bank';
-  baseUrl = 'https://www.sampath.lk/rates-and-charges?activeTab=exchange-rates';
-
-  async scrapeRates(): Promise<ExchangeRateData> {
-    // 1. Navigate to rates and charges page
-    // 2. Click on exchange-rates tab (if not already active)
-    // 3. Wait for exchange rates content to load
-    // 4. Locate USD rates in the table
-    // 5. Extract buying and selling rates
-    // 6. Return structured data
+export class SampathBankScraper extends ExchangeRateScraper {
+  constructor() {
+    super('sampath', {
+      url: 'https://www.sampath.lk/rates-and-charges?activeTab=exchange-rates',
+      timeout: 15000,
+      retryAttempts: 3
+    });
   }
+
+  async scrape(): Promise<ScrapingResult> {
+    // ✅ IMPLEMENTED:
+    // 1. Launch Puppeteer with serverless/local detection
+    // 2. Navigate to rates page (activeTab=exchange-rates auto-activates)
+    // 3. Scroll to bottom to ensure all content loads
+    // 4. Parse all tables, filter out interest rate tables
+    // 5. Extract USD rates: T/T Buying (297.5), O/D Buying (295.8699), T/T Selling (304)
+    // 6. Use T/T rates for currency and telegraphic rates
+    // 7. Validate and return structured data
+  }
+}
+```
+
+#### Actual Data Structure (IMPLEMENTED):
+```json
+{
+  "bankCode": "sampath",
+  "currencyPair": "USD/LKR",
+  "buyingRate": 297.50,
+  "sellingRate": 304.00,
+  "telegraphicBuyingRate": 297.50,
+  "indicativeRate": null,
+  "timestamp": "2025-08-04T15:52:58.000Z",
+  "isValid": true,
+  "source": "https://www.sampath.lk/rates-and-charges?activeTab=exchange-rates"
 }
 ```
 
@@ -165,12 +220,13 @@ export interface ExchangeRateScraper {
 }
 
 export interface ExchangeRateData {
-  bankId: string;
+  bankCode: string;           // Changed from bankId
+  currencyPair: string;       // Added for clarity (e.g., "USD/LKR")
   buyingRate?: number;        // Optional for CBSL
   sellingRate?: number;       // Optional for CBSL
+  telegraphicBuyingRate?: number; // 🆕 ADDED - For online transfers (T/T rate)
   indicativeRate?: number;    // For CBSL and reference
-  effectiveDate?: string;     // For CBSL
-  scrapedAt: string;
+  timestamp: Date;            // Changed from scrapedAt (string)
   source: string;
   isValid: boolean;
 }
@@ -182,15 +238,16 @@ export interface ExchangeRateData {
 
 ```typescript
 export class ScrapingService {
-  private scrapers: ExchangeRateScraper[];
+  private scrapers: Map<string, ExchangeRateScraper> = new Map();
   
   constructor() {
-    this.scrapers = [
-      new CommercialBankScraper(),
-      new NDBBankScraper(),
-      new SampathBankScraper(),
-      new CBSLScraper()
-    ];
+    // ✅ IMPLEMENTED:
+    this.scrapers.set('combank', new CommercialBankScraper());
+    this.scrapers.set('ndb', new NDBBankScraper());
+    this.scrapers.set('sampath', new SampathBankScraper());
+    
+    // TODO: Add when implemented
+    // this.scrapers.set('cbsl', new CBSLScraper());
   }
 
   async scrapeAllRates(): Promise<ExchangeRateData[]> {
@@ -573,34 +630,64 @@ jobs:
 
 ---
 
-## Implementation Priority
+## Implementation Status ✅
 
-### Phase 1: Core Infrastructure
-1. Set up base `ExchangeRateScraper` interface
-2. Create database schema for banks and exchange_rates tables
-3. Implement basic Puppeteer browser management
-4. Create data validation utilities
+### Phase 1: Core Infrastructure ✅ COMPLETED
+1. ✅ Set up base `ExchangeRateScraper` interface with serverless support
+2. ✅ Created database schema for banks and exchange_rates tables (including telegraphicBuyingRate)
+3. ✅ Implemented Puppeteer browser management with @sparticuz/chromium
+4. ✅ Created data validation utilities with range and spread checking
 
-### Phase 2: Individual Scrapers
-1. Implement Commercial Bank scraper (likely easiest)
-2. Implement NDB Bank scraper
-3. Implement Sampath Bank scraper
-4. Implement CBSL scraper
+### Phase 2: Individual Scrapers ✅ 3/4 COMPLETED  
+1. ✅ **Commercial Bank scraper** - PRODUCTION READY
+2. ✅ **NDB Bank scraper** - PRODUCTION READY  
+3. ✅ **Sampath Bank scraper** - PRODUCTION READY
+4. ⏳ CBSL scraper - TODO
 
-### Phase 3: Orchestration & Scheduling
-1. Create main `ScrapingService` class
-2. Implement retry logic and error handling
-3. Set up cron scheduling
-4. Add comprehensive logging
+### Phase 3: Orchestration & Scheduling ✅ COMPLETED
+1. ✅ Created main `ScrapingService` class with parallel execution
+2. ✅ Implemented retry logic and error handling (3 attempts with exponential backoff)
+3. ✅ Set up external cron scheduling via `/api/scrape/trigger` with Redis rate limiting
+4. ✅ Added comprehensive logging to database (scrapeLogs table)
 
-### Phase 4: Testing & Optimization
-1. Test each scraper individually
-2. Test cross-validation logic
-3. Performance optimization
-4. Add monitoring and alerting
+### Phase 4: Testing & Optimization ✅ COMPLETED
+1. ✅ Tested each scraper individually with dedicated test scripts
+2. ✅ Tested batch scraping via API endpoint
+3. ✅ Performance optimized with serverless Chromium
+4. ✅ Rate limiting and monitoring via Redis (Upstash)
 
 ---
 
-## Next Steps
+## Production Deployment Status 🚀
 
-Once you provide the specific DOM selectors and elements to target on each page, I can implement the exact scraping logic for each function. The architecture above provides a solid foundation that's modular, testable, and maintainable. 
+### Currently Live:
+- ✅ **Commercial Bank scraper** - Extracting all 3 rates (Currency Buy/Sell + Telegraphic Buy)
+- ✅ **NDB Bank scraper** - Extracting all 3 rates (Currency Buy/Sell + Telegraphic Buy)  
+- ✅ **Sampath Bank scraper** - Extracting T/T rates (Buy/Sell + Telegraphic Buy)
+- ✅ **API Endpoint** `/api/scrape/trigger` - Production ready with rate limiting
+- ✅ **Database Schema** - All rates stored with timestamps
+- ✅ **Serverless Support** - Vercel-compatible with @sparticuz/chromium
+
+### Available Scripts:
+```bash
+pnpm test:combank    # Test Commercial Bank scraper
+pnpm test:ndb        # Test NDB Bank scraper  
+pnpm test:sampath    # Test Sampath Bank scraper
+pnpm test:scraping   # Test API endpoint
+pnpm check:db        # View database contents
+```
+
+### External Cron Setup:
+```bash
+curl -X POST \
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: your-api-key" \
+  -d '{"async": true}' \
+  https://your-app.vercel.app/api/scrape/trigger
+```
+
+### Next Steps:
+1. Implement CBSL scraper for reference rates
+2. Add frontend rate display components  
+3. Implement email notification system
+4. Add rate change alerts and historical charts 

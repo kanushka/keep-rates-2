@@ -20,6 +20,7 @@
 		"test:scraping": "tsx src/scripts/test-scraping-api.ts",
 		"test:combank": "tsx src/scripts/test-combank-scraper.ts",
 		"test:ndb": "tsx src/scripts/test-ndb-scraper.ts",
+		"test:sampath": "tsx src/scripts/test-sampath-scraper.ts",
 		"check:db": "tsx src/scripts/check-database.ts"
 	},
 	"dependencies": {
