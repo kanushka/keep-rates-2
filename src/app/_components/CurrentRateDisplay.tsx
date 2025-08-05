@@ -26,7 +26,7 @@ export function CurrentRateDisplay({ bankCode, bankType }: CurrentRateDisplayPro
 	useEffect(() => {
 		const observer = new IntersectionObserver(
 			([entry]) => {
-				if (entry.isIntersecting && !hasIntersected) {
+				if (entry?.isIntersecting && !hasIntersected) {
 					setIsVisible(true);
 					setHasIntersected(true);
 				}
