@@ -1,0 +1,1 @@
+ALTER TABLE "keep-rates-2_exchange_rate" ADD COLUMN "telegraphicBuyingRate" numeric(10, 4);

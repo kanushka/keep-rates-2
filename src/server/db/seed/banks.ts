@@ -6,11 +6,11 @@ import { banks } from "../schema";
 // Load environment variables
 config();
 
-// Log STORAGE_DATABASE_URL to debug
-console.log("📊 STORAGE_DATABASE_URL:", process.env.STORAGE_DATABASE_URL ? "✅ Found" : "❌ Missing");
+// Log DATABASE_URL to debug
+console.log("📊 DATABASE_URL:", process.env.DATABASE_URL ? "✅ Found" : "❌ Missing");
 
 // Direct database connection for seeding (bypassing env validation)
-const conn = postgres(process.env.STORAGE_DATABASE_URL!);
+const conn = postgres(process.env.DATABASE_URL!);
 const db = drizzle(conn, { schema: { banks } });
 
 export const bankSeedData = [

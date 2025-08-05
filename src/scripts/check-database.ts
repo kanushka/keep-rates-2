@@ -12,7 +12,7 @@ import * as schema from "../server/db/schema";
 config();
 
 // Direct database connection
-const conn = postgres(process.env.STORAGE_DATABASE_URL!);
+const conn = postgres(process.env.DATABASE_URL!);
 const db = drizzle(conn, { schema });
 
 async function checkDatabase() {
