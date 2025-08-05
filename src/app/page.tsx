@@ -51,7 +51,7 @@ export default function Home() {
 							Built with ❤️ for the Sri Lankan community
 						</p>
 						<p className="text-sm text-gray-500 mt-2">
-							Keep Rates - Your trusted source for USD/LKR exchange rate information
+							Keep Rates - The easiest way to get USD/LKR exchange rate information
 						</p>
 					</div>
 				</footer>
