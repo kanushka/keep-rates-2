@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { api } from "~/trpc/server";
 import { getBankStyling } from "~/app/utils/bank-styling";
+import { DataDisclaimerBanner } from "~/app/_components/DataDisclaimerBanner";
 import CurrentRates from "./_components/CurrentRates";
 import QuickStats from "./_components/QuickStats";
 import RateChartSection from "./_components/RateChartSection";
@@ -28,6 +29,7 @@ export default async function BankPage({ params }: BankPageProps) {
 
 	return (
 		<div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-emerald-50">
+			<DataDisclaimerBanner />
 			{/* Header */}
 			<header className="bg-white/90 backdrop-blur-sm border-b border-gray-200 sticky top-0 z-50">
 				<div className="container mx-auto max-w-6xl px-4">

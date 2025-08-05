@@ -3,12 +3,14 @@ import { BankGrid } from "~/app/_components/BankGrid";
 import { Hero } from "~/app/_components/Hero";
 import { Features } from "~/app/_components/Features";
 import { Header } from "~/app/_components/Header";
+import { DataDisclaimerBanner } from "~/app/_components/DataDisclaimerBanner";
 import { HydrateClient } from "~/trpc/server";
 
 export default function Home() {
 	return (
 		<HydrateClient>
 			<div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-emerald-50">
+				<DataDisclaimerBanner />
 				<Header />
 				
 				<main>
