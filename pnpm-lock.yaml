@@ -29,6 +29,9 @@ importers:
       '@trpc/server':
         specifier: ^11.0.0
         version: 11.4.3(typescript@5.8.3)
+      chart.js:
+        specifier: ^4.5.0
+        version: 4.5.0
       drizzle-orm:
         specifier: ^0.41.0
         version: 0.41.0(gel@2.1.1)(postgres@3.4.7)
@@ -53,6 +56,9 @@ importers:
       react:
         specifier: ^19.0.0
         version: 19.1.1
+      react-chartjs-2:
+        specifier: ^5.3.0
+        version: 5.3.0(chart.js@4.5.0)(react@19.1.1)
       react-dom:
         specifier: ^19.0.0
         version: 19.1.1(react@19.1.1)
@@ -784,6 +790,9 @@ packages:
   '@jridgewell/trace-mapping@0.3.29':
     resolution: {integrity: sha512-uw6guiW/gcAGPDhLmd77/6lW8QLeiV5RUTsAX46Db6oLhGaVj4lhnPwb184s1bkc8kdVg/+h988dro8GRDpmYQ==}
 
+  '@kurkle/color@0.3.4':
+    resolution: {integrity: sha512-M5UknZPHRu3DEDWoipU6sE8PdkZ6Z/S+v4dD+Ke8IaNlpdSQah50lz1KtcFBa2vsdOnwbbnxJwVM4wty6udA5w==}
+
   '@next/env@15.4.5':
     resolution: {integrity: sha512-ruM+q2SCOVCepUiERoxOmZY9ZVoecR3gcXNwCYZRvQQWRjhOiPJGmQ2fAiLR6YKWXcSAh7G79KEFxN3rwhs4LQ==}
 
@@ -1086,6 +1095,10 @@ packages:
 
   caniuse-lite@1.0.30001731:
     resolution: {integrity: sha512-lDdp2/wrOmTRWuoB5DpfNkC0rJDU8DqRa6nYL6HK6sytw70QMopt/NIc/9SM7ylItlBWfACXk0tEn37UWM/+mg==}
+
+  chart.js@4.5.0:
+    resolution: {integrity: sha512-aYeC/jDgSEx8SHWZvANYMioYMZ2KX02W6f6uVfyteuCGcadDLcYVHdfdygsTQkQ4TKn5lghoojAsPj5pu0SnvQ==}
+    engines: {pnpm: '>=8'}
 
   chownr@3.0.0:
     resolution: {integrity: sha512-+IxzY9BZOQd/XuYPRmrvEVjF/nqj5kgT4kEq7VofrDoM1MxoRjEWkrCC3EtLi59TVawxTAn+orJwFQcrqEN1+g==}
@@ -1664,6 +1677,12 @@ packages:
     resolution: {integrity: sha512-HPSOTw+DFsU/5s2TUUWEum9WjFbyjmvFDuGHtj2X4YUz2AzOzvKMkT3+A3FR+E+ZefiX/h3kyLyXzWJWx/eMLQ==}
     engines: {node: '>=18'}
     hasBin: true
+
+  react-chartjs-2@5.3.0:
+    resolution: {integrity: sha512-UfZZFnDsERI3c3CZGxzvNJd02SHjaSJ8kgW1djn65H1KK8rehwTjyrRKOG3VTMG8wtHZ5rgAO5oTHtHi9GCCmw==}
+    peerDependencies:
+      chart.js: ^4.1.1
+      react: ^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
 
   react-dom@19.1.1:
     resolution: {integrity: sha512-Dlq/5LAZgF0Gaz6yiqZCf6VCcZs1ghAJyrsu84Q/GT0gV+mCxbfmKNoGRKBYMJ8IEdGPqu49YWXD02GCknEDkw==}
@@ -2271,6 +2290,8 @@ snapshots:
       '@jridgewell/resolve-uri': 3.1.2
       '@jridgewell/sourcemap-codec': 1.5.4
 
+  '@kurkle/color@0.3.4': {}
+
   '@next/env@15.4.5': {}
 
   '@next/swc-darwin-arm64@15.4.5':
@@ -2506,6 +2527,10 @@ snapshots:
   callsites@3.1.0: {}
 
   caniuse-lite@1.0.30001731: {}
+
+  chart.js@4.5.0:
+    dependencies:
+      '@kurkle/color': 0.3.4
 
   chownr@3.0.0: {}
 
@@ -3054,6 +3079,11 @@ snapshots:
       - supports-color
       - typescript
       - utf-8-validate
+
+  react-chartjs-2@5.3.0(chart.js@4.5.0)(react@19.1.1):
+    dependencies:
+      chart.js: 4.5.0
+      react: 19.1.1
 
   react-dom@19.1.1(react@19.1.1):
     dependencies:

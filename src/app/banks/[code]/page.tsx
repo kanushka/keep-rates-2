@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { api } from "~/trpc/server";
 import { getBankStyling } from "~/app/utils/bank-styling";
+import { RateChart } from "~/app/_components/RateChart";
 
 interface BankPageProps {
 	params: Promise<{
@@ -16,6 +17,13 @@ export default async function BankPage({ params }: BankPageProps) {
 	if (!bank) {
 		notFound();
 	}
+
+	// Fetch exchange rate data
+	const [latestRate, historicalRates, todayStats] = await Promise.all([
+		api.exchangeRates.getLatestByBank({ bankCode: code }),
+		api.exchangeRates.getHistoryByBank({ bankCode: code, days: 7 }),
+		api.exchangeRates.getTodayStats({ bankCode: code }),
+	]);
 
 	const styling = getBankStyling(bank.code);
 
@@ -95,21 +103,36 @@ export default async function BankPage({ params }: BankPageProps) {
 								{bank.bankType === 'central' ? (
 									<div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
 										<div className="text-purple-700 text-sm mb-2">Official Indicative Rate</div>
-										<div className="text-2xl font-bold text-purple-900">Coming Soon</div>
+										<div className="text-2xl font-bold text-purple-900">
+											{latestRate?.indicativeRate ? `${parseFloat(latestRate.indicativeRate).toFixed(2)} LKR` : 'Coming Soon'}
+										</div>
 										<div className="text-purple-600 text-sm mt-1">Updated daily by CBSL</div>
 									</div>
 								) : (
 									<>
 										<div className="bg-green-50 border border-green-200 rounded-lg p-4">
 											<div className="text-green-700 text-sm mb-2">Buying Rate</div>
-											<div className="text-2xl font-bold text-green-900">Coming Soon</div>
+											<div className="text-2xl font-bold text-green-900">
+												{latestRate?.buyingRate ? `${parseFloat(latestRate.buyingRate).toFixed(2)} LKR` : 'Coming Soon'}
+											</div>
 											<div className="text-green-600 text-sm mt-1">Rate when bank buys USD</div>
 										</div>
 										<div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
 											<div className="text-blue-700 text-sm mb-2">Selling Rate</div>
-											<div className="text-2xl font-bold text-blue-900">Coming Soon</div>
+											<div className="text-2xl font-bold text-blue-900">
+												{latestRate?.sellingRate ? `${parseFloat(latestRate.sellingRate).toFixed(2)} LKR` : 'Coming Soon'}
+											</div>
 											<div className="text-blue-600 text-sm mt-1">Rate when bank sells USD</div>
 										</div>
+										{latestRate?.telegraphicBuyingRate && (
+											<div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
+												<div className="text-purple-700 text-sm mb-2">Telegraphic Buying Rate</div>
+												<div className="text-2xl font-bold text-purple-900">
+													{parseFloat(latestRate.telegraphicBuyingRate).toFixed(2)} LKR
+												</div>
+												<div className="text-purple-600 text-sm mt-1">Rate for online transfers</div>
+											</div>
+										)}
 									</>
 								)}
 							</div>
@@ -121,36 +144,41 @@ export default async function BankPage({ params }: BankPageProps) {
 							<div className="space-y-4">
 								<div className="flex justify-between items-center">
 									<span className="text-gray-600">Today's High</span>
-									<span className="font-medium text-gray-400">Coming Soon</span>
+									<span className="font-medium">
+										{todayStats?.high ? `${todayStats.high.toFixed(2)} LKR` : 'No data'}
+									</span>
 								</div>
 								<div className="flex justify-between items-center">
 									<span className="text-gray-600">Today's Low</span>
-									<span className="font-medium text-gray-400">Coming Soon</span>
+									<span className="font-medium">
+										{todayStats?.low ? `${todayStats.low.toFixed(2)} LKR` : 'No data'}
+									</span>
 								</div>
 								<div className="flex justify-between items-center">
 									<span className="text-gray-600">24h Change</span>
-									<span className="font-medium text-gray-400">Coming Soon</span>
+									<span className={`font-medium ${todayStats?.change && todayStats.change > 0 ? 'text-green-600' : todayStats?.change && todayStats.change < 0 ? 'text-red-600' : 'text-gray-400'}`}>
+										{todayStats?.change ? `${todayStats.change > 0 ? '+' : ''}${todayStats.change.toFixed(2)} LKR` : 'No data'}
+									</span>
 								</div>
 								<div className="flex justify-between items-center">
 									<span className="text-gray-600">Last Updated</span>
-									<span className="font-medium text-gray-400">Coming Soon</span>
+									<span className="font-medium text-gray-900">
+										{latestRate?.scrapedAt ? new Date(latestRate.scrapedAt).toLocaleString('en-US', {
+											month: 'short',
+											day: 'numeric',
+											hour: '2-digit',
+											minute: '2-digit'
+										}) : 'No data'}
+									</span>
 								</div>
 							</div>
 						</div>
 					</div>
 
-					{/* Chart Placeholder */}
+					{/* Rate Chart */}
 					<div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-8">
-						<h2 className="text-xl font-semibold text-gray-900 mb-6">Rate Chart</h2>
-						<div className="bg-gray-50 border-2 border-dashed border-gray-300 rounded-lg h-64 flex items-center justify-center">
-							<div className="text-center">
-								<svg className="w-16 h-16 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-									<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-								</svg>
-								<p className="text-gray-500 font-medium">Interactive Rate Chart</p>
-								<p className="text-gray-400 text-sm">Coming soon with historical data</p>
-							</div>
-						</div>
+						<h2 className="text-xl font-semibold text-gray-900 mb-6">Rate Chart (Last 7 Days)</h2>
+						<RateChart data={historicalRates} bankName={bank.name} />
 					</div>
 
 					{/* Bank Information */}
