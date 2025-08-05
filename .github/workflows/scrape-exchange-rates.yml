@@ -1,0 +1,62 @@
+name: 🏦 Scrape Exchange Rates
+
+on:
+  schedule:
+    # Every hour during business hours (9 AM - 5 PM Sri Lanka Time)
+    # Cron is in UTC, so we adjust for UTC+5:30
+    # Sri Lanka Time: 9 AM - 5 PM = UTC: 3:30 AM - 11:30 AM
+    - cron: '30 3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23 * * 1-5'
+    
+  # Allow manual triggering for testing
+  workflow_dispatch:
+    inputs:
+      test_mode:
+        description: 'Run in test mode'
+        required: false
+        default: 'false'
+
+jobs:
+  trigger-scraping:
+    name: 🚀 Trigger Rate Scraping
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: 📋 Trigger Scraping API
+        id: trigger
+        run: |
+          echo "🔄 Triggering exchange rate scraping..."
+          
+          response=$(curl -s -w "HTTPSTATUS:%{http_code}" \
+            -X POST \
+            -H "Content-Type: application/json" \
+            -H "X-API-Key: ${{ secrets.SCRAPING_API_KEY }}" \
+            -d '{"async": true}' \
+            "${{ secrets.APP_URL }}/api/scrape/trigger")
+          
+          http_code=$(echo $response | tr -d '\n' | sed -e 's/.*HTTPSTATUS://')
+          body=$(echo $response | sed -e 's/HTTPSTATUS\:.*//g')
+          
+          echo "📊 HTTP Status: $http_code"
+          echo "📄 Response Body: $body"
+          
+          if [ "$http_code" -eq "200" ]; then
+            echo "✅ Scraping triggered successfully!"
+          elif [ "$http_code" -eq "429" ]; then
+            echo "⚠️ Rate limit reached - this is expected behavior"
+          else
+            echo "❌ Scraping failed with status $http_code"
+            echo "::error::API call failed with status $http_code: $body"
+            exit 1
+          fi
+
+      - name: 📊 Log Results
+        if: always()
+        run: |
+          echo "🕐 Execution time: $(date)"
+          echo "🎯 Workflow: ${{ github.workflow }}"
+          echo "🔄 Run ID: ${{ github.run_id }}"
+          echo "🏃‍♂️ Triggered by: ${{ github.event_name }}"
+          
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            echo "🧪 Test mode: ${{ github.event.inputs.test_mode }}"
+          fi 
