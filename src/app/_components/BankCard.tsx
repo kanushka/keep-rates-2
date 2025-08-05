@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { getBankStyling } from "~/app/utils/bank-styling";
+import { CurrentRateDisplay } from "./CurrentRateDisplay";
 
 interface Bank {
 	id: number;
@@ -20,7 +21,10 @@ export function BankCard({ bank }: BankCardProps) {
 
 	return (
 		<Link href={`/banks/${bank.code}`}>
-			<div className="group bg-white rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 border border-gray-100 hover:border-gray-200 overflow-hidden">
+			<div 
+				className="group bg-white rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 border border-gray-100 hover:border-gray-200 overflow-hidden"
+				data-bank-code={bank.code}
+			>
 				{/* Header with gradient */}
 				<div className={`bg-gradient-to-r ${styling.bgGradient} p-6 text-white`}>
 					<div className="flex items-center justify-between">
@@ -51,11 +55,8 @@ export function BankCard({ bank }: BankCardProps) {
 							</div>
 						</div>
 
-						{/* Placeholder for current rate - will be added later */}
-						<div className="flex items-center justify-between">
-							<span className="text-sm text-gray-600">Current Rate</span>
-							<span className="text-sm text-gray-400">Coming Soon</span>
-						</div>
+						{/* Current rate with lazy loading */}
+						<CurrentRateDisplay bankCode={bank.code} bankType={bank.bankType} />
 
 						{/* Bank type specific info */}
 						{bank.bankType === 'central' ? (
