@@ -1,5 +1,5 @@
-import puppeteer, { type Browser } from 'puppeteer-core';
-import chromium from '@sparticuz/chromium';
+import { type Browser } from 'puppeteer-core';
+import { browserLauncher } from './browser-launcher';
 import { ExchangeRateScraper, type ScrapingResult, type ExchangeRateData } from './types';
 
 export class CommercialBankScraper extends ExchangeRateScraper {
@@ -27,37 +27,8 @@ export class CommercialBankScraper extends ExchangeRateScraper {
 			try {
 				console.log(`[ComBank] Scraping attempt ${attempts}/${this.config.retryAttempts}`);
 				
-				// Launch browser with serverless configuration
-				const isServerless = process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME;
-				console.log(`[ComBank] Browser mode: ${isServerless ? 'Serverless (Vercel/AWS)' : 'Local Development'}`);
-				
-				if (isServerless) {
-					// Serverless environment (Vercel/AWS Lambda)
-					browser = await puppeteer.launch({
-						args: [
-							...chromium.args,
-							'--hide-scrollbars',
-							'--disable-web-security',
-							'--disable-features=VizDisplayCompositor',
-						],
-						defaultViewport: { width: 1280, height: 720 },
-						executablePath: await chromium.executablePath(),
-						headless: true,
-					});
-				} else {
-					// Local development - use system Chrome or downloaded Chrome
-					const { executablePath } = await import('puppeteer');
-					browser = await puppeteer.launch({
-						args: [
-							'--no-sandbox',
-							'--disable-setuid-sandbox',
-							'--disable-dev-shm-usage',
-							'--disable-gpu'
-						],
-						executablePath: process.env.CHROME_EXECUTABLE_PATH || executablePath(),
-						headless: true,
-					});
-				}
+				// Use the optimized browser launcher
+				browser = await browserLauncher.getBrowser();
 
 				const page = await browser.newPage();
 				
@@ -169,7 +140,7 @@ export class CommercialBankScraper extends ExchangeRateScraper {
 					};
 				});
 
-				await browser.close();
+				await browserLauncher.closeBrowser(browser);
 				browser = null;
 
 				// Validate extracted data
@@ -226,7 +197,7 @@ export class CommercialBankScraper extends ExchangeRateScraper {
 				console.error(`[ComBank] Attempt ${attempts} failed:`, error);
 				
 				if (browser) {
-					await browser.close();
+					await browserLauncher.closeBrowser(browser);
 					browser = null;
 				}
 

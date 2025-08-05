@@ -67,6 +67,8 @@ async function testScrapingAPI() {
 
 	} catch (error) {
 		console.error('💥 Test failed:', error);
+	} finally {
+		process.exit(0);
 	}
 }
 
