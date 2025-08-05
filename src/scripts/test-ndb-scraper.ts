@@ -38,8 +38,6 @@ async function testNDBScraper(): Promise<void> {
 		
 	} catch (error) {
 		console.error('\n💥 Test failed:', error);
-	} finally {
-		process.exit(0);
 	}
 }
 

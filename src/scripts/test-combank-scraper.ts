@@ -37,8 +37,6 @@ async function testComBankScraper() {
 
 	} catch (error) {
 		console.error('\n💥 Scraper test failed:', error);
-	} finally {
-		process.exit(0);
 	}
 }
 
