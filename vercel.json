@@ -1,0 +1,20 @@
+{
+	"functions": {
+		"src/app/api/scrape/**/*.ts": {
+			"maxDuration": 60,
+			"memory": 3008
+		},
+		"src/app/api/trpc/**/*.ts": {
+			"maxDuration": 30,
+			"memory": 1024
+		}
+	},
+	"build": {
+		"env": {
+			"PUPPETEER_SKIP_CHROMIUM_DOWNLOAD": "true"
+		}
+	},
+	"env": {
+		"PUPPETEER_SKIP_CHROMIUM_DOWNLOAD": "true"
+	}
+} 
