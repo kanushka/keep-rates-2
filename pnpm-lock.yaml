@@ -50,9 +50,6 @@ importers:
       postgres:
         specifier: ^3.4.4
         version: 3.4.7
-      puppeteer:
-        specifier: ^24.15.0
-        version: 24.15.0(typescript@5.8.3)
       puppeteer-core:
         specifier: ^24.15.0
         version: 24.15.0
@@ -99,6 +96,9 @@ importers:
       postcss:
         specifier: ^8.5.3
         version: 8.5.6
+      puppeteer:
+        specifier: ^24.15.0
+        version: 24.15.0(typescript@5.8.3)
       tailwindcss:
         specifier: ^4.0.15
         version: 4.1.11

@@ -78,9 +78,13 @@ export class ServerlessBrowserLauncher {
 				...(launchOptions.args || []),
 			];
 		} else {
-			// Local development - use system Chrome
-			const { executablePath } = await import('puppeteer');
-			launchOptions.executablePath = process.env.CHROME_EXECUTABLE_PATH || executablePath();
+			// Local development: Use a locally installed Chrome.
+			// You need to set the CHROME_EXECUTABLE_PATH environment variable.
+			// Example for macOS: /Applications/Google Chrome.app/Contents/MacOS/Google Chrome
+			if (!process.env.CHROME_EXECUTABLE_PATH) {
+				throw new Error('CHROME_EXECUTABLE_PATH environment variable not set for local development.');
+			}
+			launchOptions.executablePath = process.env.CHROME_EXECUTABLE_PATH;
 		}
 
 		try {
