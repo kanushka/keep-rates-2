@@ -145,7 +145,7 @@ export const exchangeRatesRouter = createTRPCRouter({
 
 			const high = Math.max(...buyingRates);
 			const low = Math.min(...buyingRates);
-			const change = buyingRates.length > 1 
+			const change = buyingRates.length > 1
 				? (buyingRates[0] || 0) - (buyingRates[buyingRates.length - 1] || 0)
 				: 0;
 
@@ -155,5 +155,55 @@ export const exchangeRatesRouter = createTRPCRouter({
 				change,
 				lastUpdated: todayRates[0]?.scrapedAt,
 			};
+		}),
+
+	// Get historical rates for all commercial banks for comparison
+	getAllBanksHistory: publicProcedure
+		.input(z.object({
+			days: z.number().min(1).max(30).default(7),
+		}))
+		.query(async ({ ctx, input }) => {
+			// Get all commercial banks
+			const commercialBanks = await ctx.db
+				.select({ id: banks.id, code: banks.code, name: banks.name })
+				.from(banks)
+				.where(eq(banks.bankType, "commercial"))
+				.orderBy(banks.name);
+
+			if (commercialBanks.length === 0) {
+				return [];
+			}
+
+			const cutoffDate = new Date();
+			cutoffDate.setDate(cutoffDate.getDate() - input.days);
+
+			// Get rates for all commercial banks
+			const rates = await ctx.db
+				.select({
+					id: exchangeRates.id,
+					bankId: exchangeRates.bankId,
+					currencyPair: exchangeRates.currencyPair,
+					buyingRate: exchangeRates.buyingRate,
+					sellingRate: exchangeRates.sellingRate,
+					telegraphicBuyingRate: exchangeRates.telegraphicBuyingRate,
+					scrapedAt: exchangeRates.scrapedAt,
+					isValid: exchangeRates.isValid,
+				})
+				.from(exchangeRates)
+				.where(
+					and(
+						gte(exchangeRates.scrapedAt, cutoffDate),
+						eq(exchangeRates.isValid, true)
+					)
+				)
+				.orderBy(desc(exchangeRates.scrapedAt));
+
+			// Group rates by bank and attach bank info
+			return commercialBanks.map(bank => ({
+				bankId: bank.id,
+				bankCode: bank.code,
+				bankName: bank.name,
+				rates: rates.filter(rate => rate.bankId === bank.id),
+			}));
 		}),
 }); 
