@@ -1,5 +1,3 @@
-import { type Browser } from 'puppeteer-core';
-import { browserLauncher } from './browser-launcher';
 import { ExchangeRateScraper, type ScrapingResult, type ExchangeRateData } from './types';
 
 export class SampathBankScraper extends ExchangeRateScraper {
@@ -8,215 +6,94 @@ export class SampathBankScraper extends ExchangeRateScraper {
 			url: 'https://www.sampath.lk/rates-and-charges?activeTab=exchange-rates',
 			timeout: 15000,
 			retryAttempts: 3,
-			selectors: {
-				rateTable: 'table',
-				currency: 'tr:has(td:contains("USD")), tr:has(td:contains("US Dollar")), tr:has(td:contains("u.s. dollar"))'
-			}
+			selectors: {}
 		});
 	}
 
 	async scrape(): Promise<ScrapingResult> {
-		let browser: Browser | null = null;
+		const startTime = Date.now();
 		let attempts = 0;
 
 		for (attempts = 1; attempts <= (this.config.retryAttempts || 3); attempts++) {
 			try {
 				console.log(`[Sampath] Scraping attempt ${attempts}/${this.config.retryAttempts}`);
-				
-				// Use the optimized browser launcher
-				browser = await browserLauncher.getBrowser();
 
-				const page = await browser.newPage();
-				
-				// Set user agent to avoid bot detection
-				await page.setUserAgent(
-					'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-				);
-
-				console.log(`[Sampath] Navigating to ${this.config.url}`);
-				await page.goto(this.config.url, { 
-					waitUntil: 'networkidle0',
-					timeout: this.config.timeout 
+				const response = await fetch(this.config.url, {
+					headers: {
+						'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+					},
+					signal: AbortSignal.timeout(this.config.timeout || 15000)
 				});
 
-				// Wait for any table to load first
-				await page.waitForSelector('table', { timeout: 10000 });
+				if (!response.ok) {
+					throw new Error(`HTTP error! status: ${response.status}`);
+				}
 
-				// Scroll down to make sure the exchange rates table is visible
-				console.log(`[Sampath] Scrolling to make exchange rates table visible`);
-				await page.evaluate(() => {
-					// Scroll to the bottom of the page to ensure all content is loaded
-					window.scrollTo(0, document.body.scrollHeight);
-				});
+				const html = await response.text();
 
-				// Wait a bit for any dynamic content to load after scrolling
-				await new Promise(resolve => setTimeout(resolve, 2000));
+				// Sampath Bank table structure: Currency, Description, T/T Buying, O/D Buying, T/T Selling
+				// Looking for USD or U.S. Dollar row with 3 rates (T/T Buy, O/D Buy, T/T Sell)
+				const usdPattern = /(?:USD|U\.?S\.? Dollar)[\s\S]*?(\d{2,3}\.\d{1,4})[\s\S]*?(\d{2,3}\.\d{1,4})[\s\S]*?(\d{2,3}(?:\.\d{1,4})?)/i;
 
-				// Extract rates using page.evaluate for better performance
-				const debugInfo = await page.evaluate(() => {
-					const tables = document.querySelectorAll('table');
-					const debugData = {
-						tablesFound: tables.length,
-						usdRowsFound: [] as string[],
-						allRateTexts: [] as string[],
-						extractedRates: { currency: [] as number[], telegraphic: [] as number[] },
-						allUSDRows: [] as string[] // Debug: show all USD-containing rows
-					};
+				const match = html.match(usdPattern);
 
-					// Search through all tables for USD rates
-					for (let tableIndex = 0; tableIndex < tables.length; tableIndex++) {
-						const table = tables[tableIndex];
-						if (!table) continue;
-						
-						const rows = table.querySelectorAll('tr');
-						
-						for (let rowIndex = 0; rowIndex < rows.length; rowIndex++) {
-							const row = rows[rowIndex];
-							if (!row) continue;
-							
-							const rowText = row.textContent?.toLowerCase() || '';
-							
-							// First, log all USD-containing rows for debugging
-							if (rowText.includes('usd') || rowText.includes('u.s. dollar') || rowText.includes('us dollar')) {
-								debugData.allUSDRows.push(`Table ${tableIndex + 1}, Row ${rowIndex + 1}: ${row.textContent}`);
-							}
-							
-							// Look for USD row that might be exchange rates (look for numeric patterns)
-							// Also check if it contains text that suggests it's an exchange rate table
-							if ((rowText.includes('usd') || rowText.includes('u.s. dollar') || rowText.includes('us dollar')) &&
-								!rowText.includes('avg.bal') && !rowText.includes('interest') && !rowText.includes('bonus')) {
-								debugData.usdRowsFound.push(`Table ${tableIndex + 1}, Row ${rowIndex + 1}: ${row.textContent}`);
-								
-								// Extract all numbers from the row that look like exchange rates (xxx.xx format)
-								const cells = row.querySelectorAll('td');
-								const rateTexts: string[] = [];
-								
-								for (const cell of cells) {
-									const cellText = cell.textContent?.trim() || '';
-									// Look for decimal numbers that could be exchange rates
-									// More flexible pattern to capture rates like 297.5, 295.8699, 304
-									const rateMatch = cellText.match(/(\d{2,3}\.\d{1,4})/);
-									if (rateMatch) {
-										const rate = parseFloat(rateMatch[1] || '0');
-										if (rate >= 200 && rate <= 500) { // Reasonable range for USD/LKR
-											rateTexts.push(rateMatch[1] || '0');
-										}
-									}
-									// Also check for whole numbers like 304
-									const wholeMatch = cellText.match(/\b(\d{3})\b/);
-									if (wholeMatch && !rateMatch) {
-										const rate = parseFloat(wholeMatch[1] || '0');
-										if (rate >= 200 && rate <= 500) { // Reasonable range for USD/LKR
-											rateTexts.push(wholeMatch[1] || '0');
-										}
-									}
-								}
-								
-								debugData.allRateTexts = rateTexts;
-								
-								// Only process if we found reasonable exchange rate values
-								if (rateTexts.length >= 2) {
-									debugData.usdRowsFound.push(`Table ${tableIndex + 1}, Row ${rowIndex + 1}: ${row.textContent}`);
-									
-																	// Based on Sampath Bank table structure from screenshot:
-								// USD, U.S. Dollar, T/T Buying (297.5), O/D Buying (295.8699), T/T Selling (304)
-								if (rateTexts.length >= 3) {
-									// We have all three rates
-									const ttBuying = parseFloat(rateTexts[0] || '0');     // T/T Buying 
-									const odBuying = parseFloat(rateTexts[1] || '0');     // O/D Buying
-									const ttSelling = parseFloat(rateTexts[2] || '0');    // T/T Selling
-									
-									debugData.extractedRates.currency = [ttBuying, ttSelling];  // T/T rates for currency
-									debugData.extractedRates.telegraphic = [ttBuying, ttSelling]; // T/T rates are telegraphic rates
-								} else {
-									// Fallback for only 2 rates
-									const buyingRate = parseFloat(rateTexts[0] || '0');  
-									const sellingRate = parseFloat(rateTexts[1] || '0'); 
-									
-									debugData.extractedRates.currency = [buyingRate, sellingRate];
-									debugData.extractedRates.telegraphic = [buyingRate, sellingRate];
-								}
-									
-									return debugData; // Return after finding first valid USD row with rates
-								}
-							}
-						}
-					}
-					
-					return debugData;
-				});
+				if (match && match.length >= 4) {
+					const ttBuying = parseFloat(match[1] || '0');   // T/T Buying
+					const odBuying = parseFloat(match[2] || '0');   // O/D Buying
+					const ttSelling = parseFloat(match[3] || '0');  // T/T Selling
 
-				console.log(`[Sampath] Scraping debug info:`, JSON.stringify(debugInfo, null, 2));
+					// Use T/T rates as primary buying/selling rates
+					const buyingRate = ttBuying;
+					const sellingRate = ttSelling;
+					const telegraphicBuyingRate = ttBuying; // T/T rates are telegraphic rates
 
-				// Extract rates from debug info
-				const rates = debugInfo.extractedRates;
-				
-				if (rates.currency.length >= 2 && rates.telegraphic.length >= 2) {
-					const buyingRate = rates.currency[0];
-					const sellingRate = rates.currency[1];
-					const telegraphicBuyingRate = rates.telegraphic[0];
-					
-					console.log(`[Sampath] Extracted rates: currency=${buyingRate}/${sellingRate}, telegraphic=${telegraphicBuyingRate}`);
-					
+					console.log(`[Sampath] Extracted rates: T/T Buy=${buyingRate}, O/D Buy=${odBuying}, T/T Sell=${sellingRate}`);
+
 					// Validate rates
-					if (this.validateRate(buyingRate) && this.validateRate(sellingRate) && this.validateRate(telegraphicBuyingRate)) {
-						const spread = buyingRate && sellingRate ? Math.abs(sellingRate - buyingRate) : 'N/A';
-						console.log(`[Sampath] Rate validation passed. Spread: ${spread}`);
-						
-						const exchangeRateData: ExchangeRateData = {
-							bankCode: this.bankCode,
-							currencyPair: 'USD/LKR',
-							buyingRate,
-							sellingRate,
-							telegraphicBuyingRate,
-							indicativeRate: undefined, // Sampath doesn't provide separate indicative rate
-							timestamp: new Date(),
-							isValid: true,
-							source: this.config.url
-						};
-
-						console.log(`[Sampath] Successfully scraped: currency=${buyingRate}/${sellingRate}, telegraphic=${telegraphicBuyingRate}`);
-
-						return {
-							success: true,
-							data: exchangeRateData,
-							duration: Date.now() - Date.now(), // Will be calculated by caller
-							attempts
-						};
-					} else {
+					if (!this.validateRate(buyingRate) || !this.validateRate(sellingRate) || !this.validateRate(telegraphicBuyingRate)) {
 						throw new Error(`Invalid rate values: buying=${buyingRate}, selling=${sellingRate}, telegraphic=${telegraphicBuyingRate}`);
 					}
+
+					if (!this.validateSpread(buyingRate, sellingRate)) {
+						throw new Error(`Invalid spread: buying=${buyingRate}, selling=${sellingRate}`);
+					}
+
+					const exchangeRateData: ExchangeRateData = {
+						bankCode: this.bankCode,
+						currencyPair: 'USD/LKR',
+						buyingRate,
+						sellingRate,
+						telegraphicBuyingRate,
+						timestamp: new Date(),
+						isValid: true,
+						source: this.config.url
+					};
+
+					console.log(`[Sampath] Successfully scraped: currency=${buyingRate}/${sellingRate}, telegraphic=${telegraphicBuyingRate}`);
+
+					return this.createResult(true, exchangeRateData, undefined, attempts, startTime);
 				} else {
-					throw new Error(`Failed to extract rates. Debug info: ${JSON.stringify(debugInfo)}`);
+					throw new Error("USD rates not found in page");
 				}
 
 			} catch (error) {
 				console.log(`[Sampath] Attempt ${attempts} failed:`, error);
-				
+
 				if (attempts === (this.config.retryAttempts || 3)) {
-					return {
-						success: false,
-						error: error instanceof Error ? error.message : String(error),
-						duration: Date.now() - Date.now(), // Will be calculated by caller
-						attempts
-					};
+					return this.createResult(
+						false,
+						undefined,
+						error instanceof Error ? error.message : String(error),
+						attempts,
+						startTime
+					);
 				}
-				
+
 				// Wait before retry
 				await new Promise(resolve => setTimeout(resolve, 1000 * attempts));
-			} finally {
-				if (browser) {
-									await browserLauncher.closeBrowser(browser);
-				browser = null;
-				}
 			}
 		}
 
-		return {
-			success: false,
-			error: 'All retry attempts exhausted',
-			duration: Date.now() - Date.now(),
-			attempts
-		};
+		return this.createResult(false, undefined, 'All retry attempts exhausted', attempts, startTime);
 	}
 }

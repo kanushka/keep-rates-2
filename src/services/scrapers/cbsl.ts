@@ -1,5 +1,3 @@
-import { type Browser } from 'puppeteer-core';
-import { browserLauncher } from './browser-launcher';
 import { ExchangeRateScraper, type ScrapingResult, type ExchangeRateData } from './types';
 
 export class CBSLScraper extends ExchangeRateScraper {
@@ -8,208 +6,121 @@ export class CBSLScraper extends ExchangeRateScraper {
 			url: 'https://www.cbsl.gov.lk/',
 			timeout: 15000,
 			retryAttempts: 3,
-			selectors: {
-				rateTable: '.economy-snapshot, .exchange-rate, .rate-display',
-				currency: 'text*="TT Buy"'
-			}
+			selectors: {}
 		});
 	}
 
 	async scrape(): Promise<ScrapingResult> {
-		let browser: Browser | null = null;
+		const startTime = Date.now();
 		let attempts = 0;
 
 		for (attempts = 1; attempts <= (this.config.retryAttempts || 3); attempts++) {
 			try {
 				console.log(`[CBSL] Scraping attempt ${attempts}/${this.config.retryAttempts}`);
-				
-				// Use the optimized browser launcher
-				browser = await browserLauncher.getBrowser();
 
-				const page = await browser.newPage();
-				
-				// Set user agent to avoid bot detection
-				await page.setUserAgent(
-					'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-				);
-
-				console.log(`[CBSL] Navigating to ${this.config.url}`);
-				await page.goto(this.config.url, { 
-					waitUntil: 'networkidle0',
-					timeout: this.config.timeout 
+				const response = await fetch(this.config.url, {
+					headers: {
+						'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+					},
+					signal: AbortSignal.timeout(this.config.timeout || 15000)
 				});
 
-				// Wait for initial content to load
-				await new Promise(resolve => setTimeout(resolve, 3000));
-				
-				// Scroll to trigger dynamic content loading
-				await page.evaluate(() => {
-					window.scrollTo(0, document.body.scrollHeight);
-				});
-				
-				// Wait for dynamic content
-				await new Promise(resolve => setTimeout(resolve, 2000));
-				
-				// Scroll back to top
-				await page.evaluate(() => {
-					window.scrollTo(0, 0);
-				});
-				
-				// Wait for any additional content to load
-				await new Promise(resolve => setTimeout(resolve, 2000));
+				if (!response.ok) {
+					throw new Error(`HTTP error! status: ${response.status}`);
+				}
 
-				// Extract rates using page.evaluate for better performance
-				const debugInfo = await page.evaluate(() => {
-					const debugData = {
-						pageTitle: document.title,
-						bodyText: document.body.textContent?.substring(0, 1000) || '',
-						rateSections: [] as string[],
-						extractedRates: {
-							buy: null as number | null,
-							sell: null as number | null
-						},
-						allNumbers: [] as string[],
-						allTTText: [] as string[]
+				const html = await response.text();
+
+				// CBSL shows TT Buy and TT Sell rates
+				// Looking for patterns like "TT Buy" followed by rate, then "TT Sell" followed by rate
+				const ttBuyPattern = /TT Buy[\s\S]{0,50}?(\d{2,3}\.\d{2,4})/i;
+				const ttSellPattern = /TT Sell[\s\S]{0,50}?(\d{2,3}\.\d{2,4})/i;
+
+				const buyMatch = html.match(ttBuyPattern);
+				const sellMatch = html.match(ttSellPattern);
+
+				if (buyMatch && sellMatch) {
+					const buyRate = parseFloat(buyMatch[1] || '0');
+					const sellRate = parseFloat(sellMatch[1] || '0');
+
+					console.log(`[CBSL] Extracted rates: TT Buy=${buyRate}, TT Sell=${sellRate}`);
+
+					// Validate rates
+					if (!this.validateRate(buyRate) || !this.validateRate(sellRate)) {
+						throw new Error(`Invalid rate values: buy=${buyRate}, sell=${sellRate}`);
+					}
+
+					if (!this.validateSpread(buyRate, sellRate)) {
+						throw new Error(`Invalid spread: buy=${buyRate}, sell=${sellRate}`);
+					}
+
+					const exchangeRateData: ExchangeRateData = {
+						bankCode: this.bankCode,
+						currencyPair: 'USD/LKR',
+						buyingRate: buyRate,
+						sellingRate: sellRate,
+						telegraphicBuyingRate: buyRate, // CBSL TT Buy rate
+						timestamp: new Date(),
+						isValid: true,
+						source: this.config.url
 					};
 
-					// First, find all text containing TT Buy/Sell
-					const allElements = document.querySelectorAll('*');
-					
-					for (const element of allElements) {
-						const text = element.textContent?.trim() || '';
-						
-						if ((text.includes('TT Buy') || text.includes('TT Sell')) && text.length < 500) {
-							debugData.allTTText.push(text);
-						}
-					}
+					console.log(`[CBSL] Successfully scraped: TT Buy=${buyRate}, TT Sell=${sellRate}`);
 
-					// Look for specific TT rate patterns
-					const fullText = document.body.textContent || '';
-					
-					// Find all decimal numbers in reasonable exchange rate range
-					const allRateNumbers = fullText.match(/\b(\d{2,3}\.\d{2,4})\b/g);
-					if (allRateNumbers) {
-						const validRates = allRateNumbers
-							.map(n => parseFloat(n))
-							.filter(n => n >= 250 && n <= 400);
-						debugData.allNumbers = validRates.map(n => n.toString());
-					}
-
-					// Look for TT Buy/Sell patterns
-					const patterns = [
-						// Pattern 1: "TT Buy" followed by rate
-						/TT Buy[\s\S]{0,50}?(\d{2,3}\.\d{2,4})/i,
-						// Pattern 2: "TT Sell" followed by rate  
-						/TT Sell[\s\S]{0,50}?(\d{2,3}\.\d{2,4})/i,
-						// Pattern 3: Both TT rates in sequence
-						/TT Buy[\s\S]{0,100}?(\d{2,3}\.\d{2,4})[\s\S]{0,100}?TT Sell[\s\S]{0,100}?(\d{2,3}\.\d{2,4})/i,
-						// Pattern 4: Exchange Rate USD/LKR section
-						/Exchange Rate USD\/LKR[\s\S]{0,200}?(\d{2,3}\.\d{2,4})[\s\S]{0,100}?(\d{2,3}\.\d{2,4})/i
-					];
-
-					// Try to extract TT Buy and TT Sell rates
-					const ttBuyMatch = fullText.match(/TT Buy[\s\S]{0,50}?(\d{2,3}\.\d{2,4})/i);
-					const ttSellMatch = fullText.match(/TT Sell[\s\S]{0,50}?(\d{2,3}\.\d{2,4})/i);
-
-					if (ttBuyMatch && ttSellMatch) {
-						const buyRate = parseFloat(ttBuyMatch[1] || '0');
-						const sellRate = parseFloat(ttSellMatch[1] || '0');
-						
-						if (buyRate >= 250 && buyRate <= 400 && sellRate >= 250 && sellRate <= 400) {
-							debugData.extractedRates.buy = buyRate;
-							debugData.extractedRates.sell = sellRate;
-							debugData.rateSections.push(`TT Buy: ${buyRate}, TT Sell: ${sellRate}`);
-						}
-					}
-
-					// Alternative: Look for "Exchange Rate USD/LKR" section
-					const exchangeRateMatch = fullText.match(/Exchange Rate USD\/LKR[\s\S]{0,300}?(\d{2,3}\.\d{2,4})[\s\S]{0,100}?(\d{2,3}\.\d{2,4})/i);
-					if (exchangeRateMatch && !debugData.extractedRates.buy) {
-						const rate1 = parseFloat(exchangeRateMatch[1] || '0');
-						const rate2 = parseFloat(exchangeRateMatch[2] || '0');
-						
-						if (rate1 >= 250 && rate1 <= 400 && rate2 >= 250 && rate2 <= 400) {
-							// Assume first is buy, second is sell (buy < sell)
-							if (rate1 < rate2) {
-								debugData.extractedRates.buy = rate1;
-								debugData.extractedRates.sell = rate2;
-							} else {
-								debugData.extractedRates.buy = rate2;
-								debugData.extractedRates.sell = rate1;
-							}
-							debugData.rateSections.push(`Exchange Rate pattern: ${rate1}/${rate2}`);
-						}
-					}
-
-					return debugData;
-				});
-
-				console.log(`[CBSL] Scraping debug info:`, JSON.stringify(debugInfo, null, 2));
-
-				// Extract rates from debug info
-				const { buy, sell } = debugInfo.extractedRates;
-				
-				if (buy && sell) {
-					console.log(`[CBSL] Extracted rates: TT Buy=${buy}, TT Sell=${sell}`);
-					
-					// Validate rates
-					if (this.validateRate(buy) && this.validateRate(sell)) {
-						const spread = Math.abs(sell - buy);
-						console.log(`[CBSL] Rate validation passed. Spread: ${spread}`);
-						
-						const exchangeRateData: ExchangeRateData = {
-							bankCode: this.bankCode,
-							currencyPair: 'USD/LKR',
-							buyingRate: buy,
-							sellingRate: sell,
-							telegraphicBuyingRate: buy, // CBSL TT Buy rate
-							timestamp: new Date(),
-							isValid: true,
-							source: this.config.url
-						};
-
-						console.log(`[CBSL] Successfully scraped: TT Buy=${buy}, TT Sell=${sell}`);
-
-						return {
-							success: true,
-							data: exchangeRateData,
-							duration: Date.now() - Date.now(), // Will be calculated by caller
-							attempts
-						};
-					} else {
-						throw new Error(`Invalid rate values: buy=${buy}, sell=${sell}`);
-					}
+					return this.createResult(true, exchangeRateData, undefined, attempts, startTime);
 				} else {
-					throw new Error(`Failed to extract rates. Debug info: ${JSON.stringify(debugInfo)}`);
+					// Try alternative pattern: Exchange Rate USD/LKR section
+					const exchangeRatePattern = /Exchange Rate USD\/LKR[\s\S]{0,300}?(\d{2,3}\.\d{2,4})[\s\S]{0,100}?(\d{2,3}\.\d{2,4})/i;
+					const altMatch = html.match(exchangeRatePattern);
+
+					if (altMatch && altMatch.length >= 3) {
+						const rate1 = parseFloat(altMatch[1] || '0');
+						const rate2 = parseFloat(altMatch[2] || '0');
+
+						// Assume first is buy, second is sell (buy < sell)
+						const buyRate = rate1 < rate2 ? rate1 : rate2;
+						const sellRate = rate1 < rate2 ? rate2 : rate1;
+
+						console.log(`[CBSL] Extracted rates (alternative pattern): Buy=${buyRate}, Sell=${sellRate}`);
+
+						if (this.validateRate(buyRate) && this.validateRate(sellRate) && this.validateSpread(buyRate, sellRate)) {
+							const exchangeRateData: ExchangeRateData = {
+								bankCode: this.bankCode,
+								currencyPair: 'USD/LKR',
+								buyingRate: buyRate,
+								sellingRate: sellRate,
+								telegraphicBuyingRate: buyRate,
+								timestamp: new Date(),
+								isValid: true,
+								source: this.config.url
+							};
+
+							console.log(`[CBSL] Successfully scraped (alternative): Buy=${buyRate}, Sell=${sellRate}`);
+							return this.createResult(true, exchangeRateData, undefined, attempts, startTime);
+						}
+					}
+
+					throw new Error("TT Buy/Sell rates not found in page");
 				}
 
 			} catch (error) {
 				console.log(`[CBSL] Attempt ${attempts} failed:`, error);
-				
+
 				if (attempts === (this.config.retryAttempts || 3)) {
-					return {
-						success: false,
-						error: error instanceof Error ? error.message : String(error),
-						duration: Date.now() - Date.now(), // Will be calculated by caller
-						attempts
-					};
+					return this.createResult(
+						false,
+						undefined,
+						error instanceof Error ? error.message : String(error),
+						attempts,
+						startTime
+					);
 				}
-				
+
 				// Wait before retry
 				await new Promise(resolve => setTimeout(resolve, 1000 * attempts));
-			} finally {
-				if (browser) {
-									await browserLauncher.closeBrowser(browser);
-				browser = null;
-				}
 			}
 		}
 
-		return {
-			success: false,
-			error: 'All retry attempts exhausted',
-			duration: Date.now() - Date.now(),
-			attempts
-		};
+		return this.createResult(false, undefined, 'All retry attempts exhausted', attempts, startTime);
 	}
 }

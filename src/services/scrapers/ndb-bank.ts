@@ -1,5 +1,3 @@
-import { type Browser } from 'puppeteer-core';
-import { browserLauncher } from './browser-launcher';
 import { ExchangeRateScraper, type ScrapingResult, type ExchangeRateData } from './types';
 
 export class NDBBankScraper extends ExchangeRateScraper {
@@ -8,171 +6,89 @@ export class NDBBankScraper extends ExchangeRateScraper {
 			url: 'https://www.ndbbank.com/rates/exchange-rates',
 			timeout: 15000,
 			retryAttempts: 3,
-			selectors: {
-				rateTable: 'table',
-				currency: 'tr:has(td:contains("USD")), tr:has(td:contains("US Dollar")), tr:has(td:contains("us dollar"))'
-			}
+			selectors: {}
 		});
 	}
 
 	async scrape(): Promise<ScrapingResult> {
-		let browser: Browser | null = null;
+		const startTime = Date.now();
 		let attempts = 0;
 
 		for (attempts = 1; attempts <= (this.config.retryAttempts || 3); attempts++) {
 			try {
 				console.log(`[NDBBank] Scraping attempt ${attempts}/${this.config.retryAttempts}`);
-				
-				// Use the optimized browser launcher
-				browser = await browserLauncher.getBrowser();
 
-				const page = await browser.newPage();
-				
-				// Set user agent to avoid bot detection
-				await page.setUserAgent(
-					'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-				);
-
-				console.log(`[NDBBank] Navigating to ${this.config.url}`);
-				await page.goto(this.config.url, { 
-					waitUntil: 'networkidle0',
-					timeout: this.config.timeout 
+				const response = await fetch(this.config.url, {
+					headers: {
+						'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+					},
+					signal: AbortSignal.timeout(this.config.timeout || 15000)
 				});
 
-				// Wait for the rates table to load
-				await page.waitForSelector('table', { timeout: 10000 });
+				if (!response.ok) {
+					throw new Error(`HTTP error! status: ${response.status}`);
+				}
 
-				// Extract rates using page.evaluate for better performance
-				const debugInfo = await page.evaluate(() => {
-					const tables = document.querySelectorAll('table');
-					const debugData = {
-						tablesFound: tables.length,
-						usdRowsFound: [] as string[],
-						allRateTexts: [] as string[],
-						extractedRates: { currency: [] as number[], telegraphic: [] as number[] }
-					};
+				const html = await response.text();
 
-					// Search through all tables for USD rates
-					for (let tableIndex = 0; tableIndex < tables.length; tableIndex++) {
-						const table = tables[tableIndex];
-						if (!table) continue;
-						
-						const rows = table.querySelectorAll('tr');
-						
-						for (let rowIndex = 0; rowIndex < rows.length; rowIndex++) {
-							const row = rows[rowIndex];
-							if (!row) continue;
-							
-							const rowText = row.textContent?.toLowerCase() || '';
-							
-							// Look for USD row (various possible formats)
-							if (rowText.includes('us dollar') || rowText.includes('usd') || rowText.includes('dollar')) {
-								debugData.usdRowsFound.push(`Table ${tableIndex + 1}, Row ${rowIndex + 1}: ${row.textContent}`);
-								
-								// Extract all numbers from the row that look like exchange rates (xxx.xx format)
-								const cells = row.querySelectorAll('td');
-								const rateTexts: string[] = [];
-								
-								for (const cell of cells) {
-									const cellText = cell.textContent?.trim() || '';
-									// Look for decimal numbers that could be exchange rates (between 200-400 range typically)
-									const rateMatch = cellText.match(/(\d{2,3}\.\d{2})/);
-									if (rateMatch) {
-										const rate = parseFloat(rateMatch[1] || '0');
-										if (rate >= 200 && rate <= 500) { // Reasonable range for USD/LKR
-											rateTexts.push(rateMatch[1] || '0');
-										}
-									}
-								}
-								
-								debugData.allRateTexts = rateTexts;
-								
-								// Based on NDB Bank table structure from screenshot:
-								// Currency Buying, Currency Selling, Demand Draft Buying, Demand Draft Selling, Telegraphic Buying, Telegraphic Selling
-								if (rateTexts.length >= 6) {
-									debugData.extractedRates.currency = [parseFloat(rateTexts[0] || '0'), parseFloat(rateTexts[1] || '0')]; // Currency rates
-									debugData.extractedRates.telegraphic = [parseFloat(rateTexts[4] || '0'), parseFloat(rateTexts[5] || '0')]; // Telegraphic rates
-								}
-								
-								return debugData; // Return after finding first USD row
-							}
-						}
-					}
-					
-					return debugData;
-				});
+				// NDB Bank table structure: Currency Buying, Currency Selling, Demand Draft Buying, Demand Draft Selling, Telegraphic Buying, Telegraphic Selling
+				// Looking for US Dollar or USD row with 6 rates
+				const usdPattern = /(?:US Dollar|USD)[\s\S]*?(\d{2,3}\.\d{2})[\s\S]*?(\d{2,3}\.\d{2})[\s\S]*?(\d{2,3}\.\d{2})[\s\S]*?(\d{2,3}\.\d{2})[\s\S]*?(\d{2,3}\.\d{2})[\s\S]*?(\d{2,3}\.\d{2})/i;
 
-				console.log(`[NDBBank] Scraping debug info:`, JSON.stringify(debugInfo, null, 2));
+				const match = html.match(usdPattern);
 
-				// Extract rates from debug info
-				const rates = debugInfo.extractedRates;
-				
-				if (rates.currency.length >= 2 && rates.telegraphic.length >= 2) {
-					const buyingRate = rates.currency[0];
-					const sellingRate = rates.currency[1];
-					const telegraphicBuyingRate = rates.telegraphic[0];
-					
+				if (match && match.length >= 7) {
+					const buyingRate = parseFloat(match[1] || '0');           // Currency buying
+					const sellingRate = parseFloat(match[2] || '0');          // Currency selling
+					const telegraphicBuyingRate = parseFloat(match[5] || '0'); // Telegraphic buying
+
 					console.log(`[NDBBank] Extracted rates: currency=${buyingRate}/${sellingRate}, telegraphic=${telegraphicBuyingRate}`);
-					
+
 					// Validate rates
-					if (this.validateRate(buyingRate) && this.validateRate(sellingRate) && this.validateRate(telegraphicBuyingRate)) {
-						const spread = buyingRate && sellingRate ? Math.abs(sellingRate - buyingRate) : 'N/A';
-						console.log(`[NDBBank] Rate validation passed. Spread: ${spread}`);
-						
-						const exchangeRateData: ExchangeRateData = {
-							bankCode: this.bankCode,
-							currencyPair: 'USD/LKR',
-							buyingRate,
-							sellingRate,
-							telegraphicBuyingRate,
-							indicativeRate: undefined, // NDB doesn't provide separate indicative rate
-							timestamp: new Date(),
-							isValid: true,
-							source: this.config.url
-						};
-
-						console.log(`[NDBBank] Successfully scraped: currency=${buyingRate}/${sellingRate}, telegraphic=${telegraphicBuyingRate}`);
-
-						return {
-							success: true,
-							data: exchangeRateData,
-							duration: Date.now() - Date.now(), // Will be calculated by caller
-							attempts
-						};
-					} else {
+					if (!this.validateRate(buyingRate) || !this.validateRate(sellingRate) || !this.validateRate(telegraphicBuyingRate)) {
 						throw new Error(`Invalid rate values: buying=${buyingRate}, selling=${sellingRate}, telegraphic=${telegraphicBuyingRate}`);
 					}
+
+					if (!this.validateSpread(buyingRate, sellingRate)) {
+						throw new Error(`Invalid spread: buying=${buyingRate}, selling=${sellingRate}`);
+					}
+
+					const exchangeRateData: ExchangeRateData = {
+						bankCode: this.bankCode,
+						currencyPair: 'USD/LKR',
+						buyingRate,
+						sellingRate,
+						telegraphicBuyingRate,
+						timestamp: new Date(),
+						isValid: true,
+						source: this.config.url
+					};
+
+					console.log(`[NDBBank] Successfully scraped: currency=${buyingRate}/${sellingRate}, telegraphic=${telegraphicBuyingRate}`);
+
+					return this.createResult(true, exchangeRateData, undefined, attempts, startTime);
 				} else {
-					throw new Error(`Failed to extract rates. Debug info: ${JSON.stringify(debugInfo)}`);
+					throw new Error("USD rates not found in page");
 				}
 
 			} catch (error) {
 				console.log(`[NDBBank] Attempt ${attempts} failed:`, error);
-				
+
 				if (attempts === (this.config.retryAttempts || 3)) {
-					return {
-						success: false,
-						error: error instanceof Error ? error.message : String(error),
-						duration: Date.now() - Date.now(), // Will be calculated by caller
-						attempts
-					};
+					return this.createResult(
+						false,
+						undefined,
+						error instanceof Error ? error.message : String(error),
+						attempts,
+						startTime
+					);
 				}
-				
+
 				// Wait before retry
 				await new Promise(resolve => setTimeout(resolve, 1000 * attempts));
-			} finally {
-				if (browser) {
-									await browserLauncher.closeBrowser(browser);
-				browser = null;
-				}
 			}
 		}
 
-		return {
-			success: false,
-			error: 'All retry attempts exhausted',
-			duration: Date.now() - Date.now(),
-			attempts
-		};
+		return this.createResult(false, undefined, 'All retry attempts exhausted', attempts, startTime);
 	}
 }
