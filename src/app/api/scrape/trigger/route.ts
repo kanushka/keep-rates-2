@@ -84,11 +84,11 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 			const body = await request.json();
 			options = {
 				banks: body.banks, // Optional: specific banks to scrape
-				async: body.async !== false // Default to async execution
+				async: body.async === true // Default to sync execution for reliability
 			};
 		} catch {
 			// Body parsing failed, use defaults
-			options = { async: true };
+			options = { async: false };
 		}
 
 		console.log(`🚀 Scraping triggered with options:`, options);
