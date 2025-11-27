@@ -25,6 +25,8 @@ export class CommercialBankScraper extends ExchangeRateScraper {
 					signal: AbortSignal.timeout(this.config.timeout || 15000)
 				});
 
+				console.log(`[ComBank] HTTP Response status: ${response.status}`);
+
 				if (!response.ok) {
 					throw new Error(`HTTP error! status: ${response.status}`);
 				}
