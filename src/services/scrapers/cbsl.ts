@@ -3,7 +3,7 @@ import { ExchangeRateScraper, type ScrapingResult, type ExchangeRateData } from 
 export class CBSLScraper extends ExchangeRateScraper {
 	constructor() {
 		super('cbsl', {
-			url: 'https://www.cbsl.gov.lk/',
+			url: 'https://www.cbsl.gov.lk/en/rates-and-indicators/exchange-rates',
 			timeout: 15000,
 			retryAttempts: 3,
 			selectors: {}
@@ -31,19 +31,19 @@ export class CBSLScraper extends ExchangeRateScraper {
 
 				const html = await response.text();
 
-				// CBSL shows TT Buy and TT Sell rates
-				// Looking for patterns like "TT Buy" followed by rate, then "TT Sell" followed by rate
-				const ttBuyPattern = /TT Buy[\s\S]{0,50}?(\d{2,3}\.\d{2,4})/i;
-				const ttSellPattern = /TT Sell[\s\S]{0,50}?(\d{2,3}\.\d{2,4})/i;
+				// CBSL shows "USD/LKR SPOT Indicative Exchange Rate" followed by Buy and Sell rates
+				// Pattern: "Buy" followed by rate, then "Sell" followed by rate
+				const buyPattern = /Buy[\s\S]{0,100}?(\d{2,3}\.\d{2,4})/i;
+				const sellPattern = /Sell[\s\S]{0,100}?(\d{2,3}\.\d{2,4})/i;
 
-				const buyMatch = html.match(ttBuyPattern);
-				const sellMatch = html.match(ttSellPattern);
+				const buyMatch = html.match(buyPattern);
+				const sellMatch = html.match(sellPattern);
 
 				if (buyMatch && sellMatch) {
 					const buyRate = parseFloat(buyMatch[1] || '0');
 					const sellRate = parseFloat(sellMatch[1] || '0');
 
-					console.log(`[CBSL] Extracted rates: TT Buy=${buyRate}, TT Sell=${sellRate}`);
+					console.log(`[CBSL] Extracted rates: Buy=${buyRate}, Sell=${sellRate}`);
 
 					// Validate rates
 					if (!this.validateRate(buyRate) || !this.validateRate(sellRate)) {
@@ -59,29 +59,26 @@ export class CBSLScraper extends ExchangeRateScraper {
 						currencyPair: 'USD/LKR',
 						buyingRate: buyRate,
 						sellingRate: sellRate,
-						telegraphicBuyingRate: buyRate, // CBSL TT Buy rate
+						telegraphicBuyingRate: buyRate, // CBSL indicative buy rate
+						indicativeRate: buyRate, // CBSL provides indicative rate
 						timestamp: new Date(),
 						isValid: true,
 						source: this.config.url
 					};
 
-					console.log(`[CBSL] Successfully scraped: TT Buy=${buyRate}, TT Sell=${sellRate}`);
+					console.log(`[CBSL] Successfully scraped: Buy=${buyRate}, Sell=${sellRate}`);
 
 					return this.createResult(true, exchangeRateData, undefined, attempts, startTime);
 				} else {
-					// Try alternative pattern: Exchange Rate USD/LKR section
-					const exchangeRatePattern = /Exchange Rate USD\/LKR[\s\S]{0,300}?(\d{2,3}\.\d{2,4})[\s\S]{0,100}?(\d{2,3}\.\d{2,4})/i;
-					const altMatch = html.match(exchangeRatePattern);
+					// Try alternative pattern for "USD/LKR SPOT Indicative Exchange Rate"
+					const spotPattern = /USD\/LKR SPOT Indicative Exchange Rate[\s\S]{0,200}?Buy[\s\S]{0,100}?(\d{2,3}\.\d{2,4})[\s\S]{0,100}?Sell[\s\S]{0,100}?(\d{2,3}\.\d{2,4})/i;
+					const spotMatch = html.match(spotPattern);
 
-					if (altMatch && altMatch.length >= 3) {
-						const rate1 = parseFloat(altMatch[1] || '0');
-						const rate2 = parseFloat(altMatch[2] || '0');
+					if (spotMatch && spotMatch.length >= 3) {
+						const buyRate = parseFloat(spotMatch[1] || '0');
+						const sellRate = parseFloat(spotMatch[2] || '0');
 
-						// Assume first is buy, second is sell (buy < sell)
-						const buyRate = rate1 < rate2 ? rate1 : rate2;
-						const sellRate = rate1 < rate2 ? rate2 : rate1;
-
-						console.log(`[CBSL] Extracted rates (alternative pattern): Buy=${buyRate}, Sell=${sellRate}`);
+						console.log(`[CBSL] Extracted rates (spot pattern): Buy=${buyRate}, Sell=${sellRate}`);
 
 						if (this.validateRate(buyRate) && this.validateRate(sellRate) && this.validateSpread(buyRate, sellRate)) {
 							const exchangeRateData: ExchangeRateData = {
@@ -90,17 +87,18 @@ export class CBSLScraper extends ExchangeRateScraper {
 								buyingRate: buyRate,
 								sellingRate: sellRate,
 								telegraphicBuyingRate: buyRate,
+								indicativeRate: buyRate,
 								timestamp: new Date(),
 								isValid: true,
 								source: this.config.url
 							};
 
-							console.log(`[CBSL] Successfully scraped (alternative): Buy=${buyRate}, Sell=${sellRate}`);
+							console.log(`[CBSL] Successfully scraped (spot): Buy=${buyRate}, Sell=${sellRate}`);
 							return this.createResult(true, exchangeRateData, undefined, attempts, startTime);
 						}
 					}
 
-					throw new Error("TT Buy/Sell rates not found in page");
+					throw new Error("CBSL Buy/Sell rates not found in page");
 				}
 
 			} catch (error) {
