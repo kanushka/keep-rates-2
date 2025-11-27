@@ -17,11 +17,8 @@ export default function Home() {
 					{/* Hero Section */}
 					<Hero />
 					
-					{/* Features Section */}
-					<Features />
-					
 					{/* Banks Section */}
-					<section className="py-16 px-4">
+					<section className="py-16 px-4 bg-gray-50">
 						<div className="container mx-auto max-w-6xl">
 							<div className="text-center mb-12">
 								<h2 className="text-3xl font-bold text-gray-900 mb-4">
