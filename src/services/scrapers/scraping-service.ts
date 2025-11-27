@@ -28,15 +28,14 @@ export class ScrapingService {
 	private scrapers: Map<string, any> = new Map();
 
 	constructor() {
-		// Initialize working bank scrapers (fetch + regex based)
-		this.scrapers.set('combank', new CommercialBankScraper());
-		this.scrapers.set('ndb', new NDBBankScraper());
+		// Initialize working bank scrapers
+		this.scrapers.set('combank', new CommercialBankScraper()); // Fetch + regex
+		this.scrapers.set('ndb', new NDBBankScraper());           // Fetch + regex
+		this.scrapers.set('sampath', new SampathBankScraper());   // API endpoint
 
 		// Disabled scrapers (require dynamic content loading):
-		// - Sampath Bank: Uses JavaScript to load exchange rates dynamically
 		// - CBSL: Uses JavaScript to load exchange rates dynamically
-		// TODO: Find API endpoints or implement alternative solution for these banks
-		// this.scrapers.set('sampath', new SampathBankScraper());
+		// TODO: Find API endpoint or implement alternative solution for CBSL
 		// this.scrapers.set('cbsl', new CBSLScraper());
 	}
 

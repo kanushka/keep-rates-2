@@ -3,7 +3,7 @@ import { ExchangeRateScraper, type ScrapingResult, type ExchangeRateData } from 
 export class SampathBankScraper extends ExchangeRateScraper {
 	constructor() {
 		super('sampath', {
-			url: 'https://www.sampath.lk/rates-and-charges?activeTab=exchange-rates',
+			url: 'https://www.sampath.lk/api/exchange-rates',
 			timeout: 15000,
 			retryAttempts: 3,
 			selectors: {}
@@ -20,7 +20,9 @@ export class SampathBankScraper extends ExchangeRateScraper {
 
 				const response = await fetch(this.config.url, {
 					headers: {
-						'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+						'Accept': 'application/json, text/plain, */*',
+						'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36',
+						'Referer': 'https://www.sampath.lk/rates-and-charges?activeTab=exchange-rates'
 					},
 					signal: AbortSignal.timeout(this.config.timeout || 15000)
 				});
@@ -29,52 +31,54 @@ export class SampathBankScraper extends ExchangeRateScraper {
 					throw new Error(`HTTP error! status: ${response.status}`);
 				}
 
-				const html = await response.text();
+				const data = await response.json();
 
-				// Sampath Bank table structure: Currency, Description, T/T Buying, O/D Buying, T/T Selling
-				// Looking for USD or U.S. Dollar row with 3 rates (T/T Buy, O/D Buy, T/T Sell)
-				const usdPattern = /(?:USD|U\.?S\.? Dollar)[\s\S]*?(\d{2,3}\.\d{1,4})[\s\S]*?(\d{2,3}\.\d{1,4})[\s\S]*?(\d{2,3}(?:\.\d{1,4})?)/i;
+				console.log(`[Sampath] API Response success:`, data.success);
 
-				const match = html.match(usdPattern);
-
-				if (match && match.length >= 4) {
-					const ttBuying = parseFloat(match[1] || '0');   // T/T Buying
-					const odBuying = parseFloat(match[2] || '0');   // O/D Buying
-					const ttSelling = parseFloat(match[3] || '0');  // T/T Selling
-
-					// Use T/T rates as primary buying/selling rates
-					const buyingRate = ttBuying;
-					const sellingRate = ttSelling;
-					const telegraphicBuyingRate = ttBuying; // T/T rates are telegraphic rates
-
-					console.log(`[Sampath] Extracted rates: T/T Buy=${buyingRate}, O/D Buy=${odBuying}, T/T Sell=${sellingRate}`);
-
-					// Validate rates
-					if (!this.validateRate(buyingRate) || !this.validateRate(sellingRate) || !this.validateRate(telegraphicBuyingRate)) {
-						throw new Error(`Invalid rate values: buying=${buyingRate}, selling=${sellingRate}, telegraphic=${telegraphicBuyingRate}`);
-					}
-
-					if (!this.validateSpread(buyingRate, sellingRate)) {
-						throw new Error(`Invalid spread: buying=${buyingRate}, selling=${sellingRate}`);
-					}
-
-					const exchangeRateData: ExchangeRateData = {
-						bankCode: this.bankCode,
-						currencyPair: 'USD/LKR',
-						buyingRate,
-						sellingRate,
-						telegraphicBuyingRate,
-						timestamp: new Date(),
-						isValid: true,
-						source: this.config.url
-					};
-
-					console.log(`[Sampath] Successfully scraped: currency=${buyingRate}/${sellingRate}, telegraphic=${telegraphicBuyingRate}`);
-
-					return this.createResult(true, exchangeRateData, undefined, attempts, startTime);
-				} else {
-					throw new Error("USD rates not found in page");
+				// Check if API response is successful
+				if (!data.success || !data.data || !Array.isArray(data.data)) {
+					throw new Error(`Invalid API response structure`);
 				}
+
+				// Find USD exchange rate in the response
+				// API structure: { success: true, data: [...] }
+				const usdRate = data.data.find((rate: any) => rate.CurrCode === 'USD');
+
+				if (!usdRate) {
+					throw new Error(`USD rate not found in API response`);
+				}
+
+				// Extract rates from API response
+				// API fields: TTBUY (T/T Buying), TTSEL (T/T Selling), ODBUY (O/D Buying)
+				const ttBuying = parseFloat(usdRate.TTBUY || '0');
+				const ttSelling = parseFloat(usdRate.TTSEL || '0');
+				const odBuying = parseFloat(usdRate.ODBUY || '0');
+
+				console.log(`[Sampath] Extracted rates: T/T Buy=${ttBuying}, O/D Buy=${odBuying}, T/T Sell=${ttSelling}`);
+
+				// Validate rates
+				if (!this.validateRate(ttBuying) || !this.validateRate(ttSelling)) {
+					throw new Error(`Invalid rate values: ttBuying=${ttBuying}, ttSelling=${ttSelling}`);
+				}
+
+				if (!this.validateSpread(ttBuying, ttSelling)) {
+					throw new Error(`Invalid spread: ttBuying=${ttBuying}, ttSelling=${ttSelling}`);
+				}
+
+				const exchangeRateData: ExchangeRateData = {
+					bankCode: this.bankCode,
+					currencyPair: 'USD/LKR',
+					buyingRate: odBuying,
+					sellingRate: ttSelling,
+					telegraphicBuyingRate: ttBuying, // T/T rates are telegraphic rates
+					timestamp: new Date(),
+					isValid: true,
+					source: this.config.url
+				};
+
+				console.log(`[Sampath] Successfully scraped: T/T Buy=${ttBuying}, T/T Sell=${ttSelling}`);
+
+				return this.createResult(true, exchangeRateData, undefined, attempts, startTime);
 
 			} catch (error) {
 				console.log(`[Sampath] Attempt ${attempts} failed:`, error);
