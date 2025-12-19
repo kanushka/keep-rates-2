@@ -35,7 +35,7 @@ export const exchangeRatesRouter = createTRPCRouter({
 	getHistoryByBank: publicProcedure
 		.input(z.object({
 			bankCode: z.string(),
-			days: z.number().min(1).max(30).default(7),
+			days: z.number().min(1).max(90).default(7),
 		}))
 		.query(async ({ ctx, input }) => {
 			// First get the bank ID from the bank code
@@ -160,7 +160,7 @@ export const exchangeRatesRouter = createTRPCRouter({
 	// Get historical rates for all commercial banks for comparison
 	getAllBanksHistory: publicProcedure
 		.input(z.object({
-			days: z.number().min(1).max(30).default(7),
+			days: z.number().min(1).max(90).default(7),
 		}))
 		.query(async ({ ctx, input }) => {
 			// Get all commercial banks

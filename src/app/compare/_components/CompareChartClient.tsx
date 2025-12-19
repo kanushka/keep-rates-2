@@ -1,9 +1,19 @@
 "use client";
 
 import { useState } from "react";
+import { api } from "~/trpc/react";
 import { CompareChart } from "~/app/_components/CompareChart";
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "~/app/_components/ui/select";
+import { CompareChartSkeletonChart } from "./CompareSkeleton";
 
 type RateType = 'telegraphicBuying' | 'selling' | 'buying';
+type TimeRange = 7 | 30 | 90;
 
 interface BankRate {
 	scrapedAt: Date;
@@ -23,13 +33,49 @@ interface CompareChartClientProps {
 	banksData: BankData[];
 }
 
-export default function CompareChartClient({ banksData }: CompareChartClientProps) {
+const timeRangeOptions: { value: TimeRange; label: string }[] = [
+	{ value: 7, label: "Last 7 Days" },
+	{ value: 30, label: "Last 30 Days" },
+	{ value: 90, label: "Last 3 Months" },
+];
+
+export default function CompareChartClient({ banksData: initialBanksData }: CompareChartClientProps) {
 	const [selectedRateType, setSelectedRateType] = useState<RateType>('telegraphicBuying');
+	const [selectedDays, setSelectedDays] = useState<TimeRange>(7);
+	
+	const { data: banksData, isLoading } = api.exchangeRates.getAllBanksHistory.useQuery(
+		{ days: selectedDays },
+		{
+			initialData: selectedDays === 7 ? initialBanksData : undefined,
+		}
+	);
 
 	return (
 		<div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
 			<div className="mb-6">
-				<h2 className="text-xl font-semibold text-gray-900 mb-4">Select Rate Type</h2>
+				<div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
+					<h2 className="text-xl font-semibold text-gray-900">Select Rate Type</h2>
+					<div className="flex items-center gap-3">
+						<label htmlFor="timeRange" className="text-sm font-medium text-gray-700">
+							Time Range:
+						</label>
+						<Select
+							value={selectedDays.toString()}
+							onValueChange={(value) => setSelectedDays(Number(value) as TimeRange)}
+						>
+							<SelectTrigger className="w-[180px]">
+								<SelectValue placeholder="Select time range" />
+							</SelectTrigger>
+							<SelectContent>
+								{timeRangeOptions.map((option) => (
+									<SelectItem key={option.value} value={option.value.toString()}>
+										{option.label}
+									</SelectItem>
+								))}
+							</SelectContent>
+						</Select>
+					</div>
+				</div>
 				<div className="flex flex-wrap gap-3">
 					<button
 						onClick={() => setSelectedRateType('telegraphicBuying')}
@@ -65,7 +111,11 @@ export default function CompareChartClient({ banksData }: CompareChartClientProp
 			</div>
 
 			<div className="border-t border-gray-200 pt-6">
-				<CompareChart data={banksData} rateType={selectedRateType} />
+				{isLoading ? (
+					<CompareChartSkeletonChart />
+				) : (
+					<CompareChart data={banksData || []} rateType={selectedRateType} />
+				)}
 			</div>
 
 			{/* Info Section */}

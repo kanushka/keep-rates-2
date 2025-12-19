@@ -9,7 +9,6 @@ import QuickStats from "./_components/QuickStats";
 import RateChartSection from "./_components/RateChartSection";
 import CurrentRatesSkeleton from "./_components/CurrentRatesSkeleton";
 import QuickStatsSkeleton from "./_components/QuickStatsSkeleton";
-import RateChartSkeleton from "./_components/RateChartSkeleton";
 
 interface BankPageProps {
 	params: Promise<{
@@ -115,9 +114,7 @@ export default async function BankPage({ params }: BankPageProps) {
 					</div>
 
 					{/* Rate Chart */}
-					<Suspense fallback={<RateChartSkeleton />}>
-						<RateChartSection bankCode={code} bankName={bank.name} />
-					</Suspense>
+					<RateChartSection bankCode={code} bankName={bank.name} />
 
 					{/* Bank Information */}
 					<div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
