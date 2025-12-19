@@ -7,7 +7,7 @@ export function Hero() {
                 <div className="max-w-3xl mx-auto">
                     <h1 className="text-4xl md:text-6xl font-bold text-gray-900 mb-6">
                         Track{" "}
-                        <span className="bg-gradient-to-r from-blue-600 to-emerald-600 bg-clip-text text-transparent">
+                        <span className="bg-gradient-to-br from-gray-800 to-slate-400 bg-clip-text text-transparent">
                             USD/LKR
                         </span>{" "}
                         Exchange Rates
@@ -19,7 +19,7 @@ export function Hero() {
                     <div className="flex flex-col sm:flex-row gap-4 justify-center">
 						<Link 
 							href="/compare" 
-							className="bg-blue-600 text-white px-8 py-3 rounded-lg hover:bg-blue-700 transition-colors font-medium"
+							className="bg-gradient-to-br from-gray-800 to-slate-400 text-white px-8 py-3 rounded-lg hover:bg-gradient-to-b hover:from-gray-800 hover:to-slate-400 transition-all font-medium"
 						>
 							Compare Rates
 						</Link>

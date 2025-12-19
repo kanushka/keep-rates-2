@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 
 export function Header() {
@@ -7,9 +8,14 @@ export function Header() {
 				<div className="flex items-center justify-between h-16">
 					{/* Logo */}
 					<Link href="/" className="flex items-center space-x-2">
-						<div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-emerald-600 rounded-lg flex items-center justify-center">
-							<span className="text-white font-bold text-sm">KR</span>
-						</div>
+						<Image
+							src="/favicon/apple-touch-icon.png"
+							alt="Keep Rates Logo"
+							width={32}
+							height={32}
+							className="w-8 h-8"
+							priority
+						/>
 						<span className="text-xl font-bold text-gray-900">Keep Rates</span>
 					</Link>
 
@@ -39,7 +45,7 @@ export function Header() {
 					<div className="flex items-center space-x-4">
 						<Link 
 							href="/subscribe" 
-							className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
+							className="bg-gradient-to-br from-gray-800 to-slate-400 text-white px-4 py-2 rounded-lg hover:bg-gradient-to-b hover:from-gray-800 hover:to-slate-400 transition-all text-sm font-medium"
 						>
 							Subscribe
 						</Link>

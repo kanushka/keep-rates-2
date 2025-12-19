@@ -22,7 +22,7 @@ export default function SubscribePage() {
 							<div className="max-w-2xl mx-auto">
 								{/* Icon */}
 								<div className="mb-6 flex justify-center">
-									<div className="w-20 h-20 bg-gradient-to-br from-blue-600 to-emerald-600 rounded-full flex items-center justify-center">
+									<div className="w-20 h-20 bg-gradient-to-br from-gray-800 to-slate-400 rounded-full flex items-center justify-center">
 										<svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 											<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
 										</svg>
@@ -75,7 +75,7 @@ export default function SubscribePage() {
 								<div className="flex flex-col sm:flex-row gap-4 justify-center">
 									<Link
 										href="/"
-										className="bg-blue-600 text-white px-8 py-3 rounded-lg hover:bg-blue-700 transition-colors font-medium"
+										className="bg-gradient-to-br from-gray-800 to-slate-400 text-white px-8 py-3 rounded-lg hover:bg-gradient-to-b hover:from-gray-800 hover:to-slate-400 transition-all font-medium"
 									>
 										Back to Home
 									</Link>

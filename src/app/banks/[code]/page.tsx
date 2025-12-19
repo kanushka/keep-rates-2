@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
@@ -45,9 +46,14 @@ export default async function BankPage({ params }: BankPageProps) {
 							</Link>
 						</div>
 						<Link href="/" className="flex items-center space-x-2">
-							<div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-emerald-600 rounded-lg flex items-center justify-center">
-								<span className="text-white font-bold text-sm">KR</span>
-							</div>
+							<Image
+								src="/favicon/apple-touch-icon.png"
+								alt="Keep Rates Logo"
+								width={32}
+								height={32}
+								className="w-8 h-8"
+								priority
+							/>
 							<span className="text-xl font-bold text-gray-900">Keep Rates</span>
 						</Link>
 					</div>
