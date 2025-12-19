@@ -68,12 +68,19 @@ export function CompareChart({ data, rateType }: CompareChartProps) {
 		);
 	}
 
-	// Collect all unique timestamps from all banks
+	// Helper function to round timestamp to nearest hour
+	const roundToNearestHour = (date: Date): string => {
+		const rounded = new Date(date);
+		rounded.setMinutes(0, 0, 0);
+		return rounded.toISOString();
+	};
+
+	// Collect all unique rounded timestamps from all banks
 	const allTimestamps = new Set<string>();
 	data.forEach(bank => {
 		bank.rates.forEach(rate => {
-			const date = new Date(rate.scrapedAt);
-			allTimestamps.add(date.toISOString());
+			const roundedTimestamp = roundToNearestHour(new Date(rate.scrapedAt));
+			allTimestamps.add(roundedTimestamp);
 		});
 	});
 
@@ -108,26 +115,43 @@ export function CompareChart({ data, rateType }: CompareChartProps) {
 		}
 	};
 
+	// Create labels and track unique dates for x-axis display
+	const labels = sortedTimestamps.map(timestamp => {
+		const date = new Date(timestamp);
+		return date.toLocaleDateString('en-US', {
+			month: 'short',
+			day: 'numeric'
+		});
+	});
+
+	// Calculate max value from all data points to add padding at top
+	let maxValue = 0;
+	data.forEach(bank => {
+		bank.rates.forEach(rate => {
+			const rateValue = getRateValue(rate);
+			if (rateValue) {
+				const value = parseFloat(rateValue);
+				if (value > maxValue) {
+					maxValue = value;
+				}
+			}
+		});
+	});
+	// Add +2 padding to the top
+	const maxValueWithPadding = maxValue + 1;
+
 	const chartData = {
-		labels: sortedTimestamps.map(timestamp => {
-			const date = new Date(timestamp);
-			return date.toLocaleDateString('en-US', {
-				month: 'short',
-				day: 'numeric',
-				hour: '2-digit',
-				minute: '2-digit'
-			});
-		}),
+		labels,
 		datasets: data.map((bank, index) => {
 			const color = BANK_COLORS[index % BANK_COLORS.length];
 
-			// Create a map of timestamp to rate for this bank
+			// Create a map of rounded timestamp to rate for this bank
 			const rateMap = new Map<string, number>();
 			bank.rates.forEach(rate => {
-				const timestamp = new Date(rate.scrapedAt).toISOString();
+				const roundedTimestamp = roundToNearestHour(new Date(rate.scrapedAt));
 				const rateValue = getRateValue(rate);
 				if (rateValue) {
-					rateMap.set(timestamp, parseFloat(rateValue));
+					rateMap.set(roundedTimestamp, parseFloat(rateValue));
 				}
 			});
 
@@ -142,7 +166,7 @@ export function CompareChart({ data, rateType }: CompareChartProps) {
 				borderColor: color?.border,
 				backgroundColor: color?.background,
 				tension: 0.1,
-				pointRadius: 3,
+				pointRadius: 0,
 				pointHoverRadius: 5,
 				spanGaps: true, // Connect points even if there are gaps
 			};
@@ -179,10 +203,62 @@ export function CompareChart({ data, rateType }: CompareChartProps) {
 				mode: 'index',
 				intersect: false,
 				callbacks: {
-					label: function(context) {
-						const value = context.parsed.y;
-						if (value === null) return `${context.dataset.label}: No data`;
-						return `${context.dataset.label}: ${value.toFixed(2)} LKR`;
+					title: function(context) {
+						if (!context || context.length === 0 || !context[0]) {
+							return '';
+						}
+						const dataIndex = context[0].dataIndex;
+						if (dataIndex === undefined || !sortedTimestamps[dataIndex]) {
+							return '';
+						}
+						const date = new Date(sortedTimestamps[dataIndex]);
+						return date.toLocaleDateString('en-US', {
+							month: 'short',
+							day: 'numeric',
+							year: 'numeric',
+							hour: '2-digit',
+							minute: '2-digit'
+						});
+					},
+					label: function() {
+						// Don't use default labels, we'll build them in afterBody
+						return '';
+					},
+					afterBody: function(context) {
+						// Build tooltip body with all banks
+						if (!context || context.length === 0 || !context[0]) {
+							return [];
+						}
+						
+						const dataIndex = context[0].dataIndex;
+						if (dataIndex === undefined || !sortedTimestamps[dataIndex]) {
+							return [];
+						}
+						
+						const timestamp = sortedTimestamps[dataIndex];
+						const tooltipLabels: string[] = [];
+						
+						// Show all banks in order
+						data.forEach((bank) => {
+							// Get the value for this bank at this timestamp
+							const rateMap = new Map<string, number>();
+							bank.rates.forEach(rate => {
+								const roundedTs = roundToNearestHour(new Date(rate.scrapedAt));
+								const rateValue = getRateValue(rate);
+								if (rateValue) {
+									rateMap.set(roundedTs, parseFloat(rateValue));
+								}
+							});
+							
+							const value = rateMap.get(timestamp);
+							if (value === undefined || value === null) {
+								tooltipLabels.push(`${bank.bankName}: No data`);
+							} else {
+								tooltipLabels.push(`${bank.bankName}: ${value.toFixed(2)} LKR`);
+							}
+						});
+						
+						return tooltipLabels;
 					},
 				},
 			},
@@ -190,6 +266,7 @@ export function CompareChart({ data, rateType }: CompareChartProps) {
 		scales: {
 			y: {
 				beginAtZero: false,
+				suggestedMax: maxValueWithPadding,
 				title: {
 					display: true,
 					text: 'Rate (LKR per USD)',
@@ -199,23 +276,45 @@ export function CompareChart({ data, rateType }: CompareChartProps) {
 					},
 				},
 				ticks: {
+					stepSize: 2,
+					maxTicksLimit: 8,
 					callback: function(value) {
-						return value + ' LKR';
+						const numValue = typeof value === 'number' ? value : parseFloat(value);
+						return numValue.toFixed(2) + ' LKR';
 					},
 				},
 			},
 			x: {
 				title: {
 					display: true,
-					text: 'Date & Time',
+					text: 'Date',
 					font: {
 						size: 12,
 						weight: 'bold',
 					},
 				},
+				grid: {
+					display: false,
+				},
 				ticks: {
 					maxRotation: 45,
 					minRotation: 45,
+					autoSkip: false,
+					callback: function(value, index) {
+						// Only show label if it's different from the previous one
+						if (index === undefined || index === null) {
+							return '';
+						}
+						const currentLabel = labels[index];
+						if (!currentLabel) {
+							return '';
+						}
+						if (index === 0) {
+							return currentLabel;
+						}
+						const previousLabel = labels[index - 1];
+						return currentLabel !== previousLabel ? currentLabel : '';
+					},
 				},
 			},
 		},

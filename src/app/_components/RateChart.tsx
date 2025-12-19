@@ -53,16 +53,36 @@ export function RateChart({ data, bankName }: RateChartProps) {
 	// Reverse data to show oldest to newest
 	const sortedData = [...data].reverse();
 
+	// Create labels and track unique dates for x-axis display
+	const labels = sortedData.map(item => {
+		const date = new Date(item.scrapedAt);
+		return date.toLocaleDateString('en-US', { 
+			month: 'short', 
+			day: 'numeric'
+		});
+	});
+
+	// Calculate max value from all data points to add padding at top
+	let maxValue = 0;
+	sortedData.forEach(item => {
+		if (item.buyingRate) {
+			const value = parseFloat(item.buyingRate);
+			if (value > maxValue) maxValue = value;
+		}
+		if (item.sellingRate) {
+			const value = parseFloat(item.sellingRate);
+			if (value > maxValue) maxValue = value;
+		}
+		if (item.telegraphicBuyingRate) {
+			const value = parseFloat(item.telegraphicBuyingRate);
+			if (value > maxValue) maxValue = value;
+		}
+	});
+	// Add +2 padding to the top
+	const maxValueWithPadding = maxValue + 1;
+
 	const chartData = {
-		labels: sortedData.map(item => {
-			const date = new Date(item.scrapedAt);
-			return date.toLocaleDateString('en-US', { 
-				month: 'short', 
-				day: 'numeric',
-				hour: '2-digit',
-				minute: '2-digit'
-			});
-		}),
+		labels,
 		datasets: [
 			{
 				label: 'Buying Rate',
@@ -70,7 +90,7 @@ export function RateChart({ data, bankName }: RateChartProps) {
 				borderColor: 'rgb(34, 197, 94)',
 				backgroundColor: 'rgba(34, 197, 94, 0.1)',
 				tension: 0.1,
-				pointRadius: 3,
+				pointRadius: 0,
 				pointHoverRadius: 5,
 			},
 			{
@@ -79,7 +99,7 @@ export function RateChart({ data, bankName }: RateChartProps) {
 				borderColor: 'rgb(59, 130, 246)',
 				backgroundColor: 'rgba(59, 130, 246, 0.1)',
 				tension: 0.1,
-				pointRadius: 3,
+				pointRadius: 0,
 				pointHoverRadius: 5,
 			},
 			{
@@ -88,7 +108,7 @@ export function RateChart({ data, bankName }: RateChartProps) {
 				borderColor: 'rgb(168, 85, 247)',
 				backgroundColor: 'rgba(168, 85, 247, 0.1)',
 				tension: 0.1,
-				pointRadius: 3,
+				pointRadius: 0,
 				pointHoverRadius: 5,
 				borderDash: [5, 5],
 			},
@@ -118,6 +138,23 @@ export function RateChart({ data, bankName }: RateChartProps) {
 				mode: 'index',
 				intersect: false,
 				callbacks: {
+					title: function(context) {
+						if (!context || context.length === 0 || !context[0]) {
+							return '';
+						}
+						const dataIndex = context[0].dataIndex;
+						if (dataIndex === undefined || !sortedData[dataIndex]) {
+							return '';
+						}
+						const date = new Date(sortedData[dataIndex].scrapedAt);
+						return date.toLocaleDateString('en-US', { 
+							month: 'short', 
+							day: 'numeric',
+							year: 'numeric',
+							hour: '2-digit',
+							minute: '2-digit'
+						});
+					},
 					label: function(context) {
 						return `${context.dataset.label}: ${context.parsed.y.toFixed(2)} LKR`;
 					},
@@ -127,20 +164,47 @@ export function RateChart({ data, bankName }: RateChartProps) {
 		scales: {
 			y: {
 				beginAtZero: false,
+				suggestedMax: maxValueWithPadding,
 				title: {
 					display: true,
 					text: 'Rate (LKR per USD)',
 				},
 				ticks: {
+					stepSize: 2,
+					maxTicksLimit: 8,
 					callback: function(value) {
-						return value + ' LKR';
+						const numValue = typeof value === 'number' ? value : parseFloat(value);
+						return numValue.toFixed(2) + ' LKR';
 					},
 				},
 			},
 			x: {
 				title: {
 					display: true,
-					text: 'Date & Time',
+					text: 'Date',
+				},
+				grid: {
+					display: false,
+				},
+				ticks: {
+					maxRotation: 45,
+					minRotation: 45,
+					autoSkip: false,
+					callback: function(value, index) {
+						// Only show label if it's different from the previous one
+						if (index === undefined || index === null) {
+							return '';
+						}
+						const currentLabel = labels[index];
+						if (!currentLabel) {
+							return '';
+						}
+						if (index === 0) {
+							return currentLabel;
+						}
+						const previousLabel = labels[index - 1];
+						return currentLabel !== previousLabel ? currentLabel : '';
+					},
 				},
 			},
 		},
@@ -152,7 +216,7 @@ export function RateChart({ data, bankName }: RateChartProps) {
 	};
 
 	return (
-		<div className="h-64">
+		<div className="h-96">
 			<Line data={chartData} options={options} />
 		</div>
 	);
