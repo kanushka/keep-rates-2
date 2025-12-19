@@ -25,45 +25,50 @@
 		"check:db": "tsx src/scripts/check-database.ts"
 	},
 	"dependencies": {
-		"@auth/drizzle-adapter": "^1.7.2",
+		"@auth/drizzle-adapter": "^1.11.1",
 		"@radix-ui/react-select": "^2.2.6",
 		"@t3-oss/env-nextjs": "^0.12.0",
-		"@tanstack/react-query": "^5.69.0",
-		"@trpc/client": "^11.0.0",
-		"@trpc/react-query": "^11.0.0",
-		"@trpc/server": "^11.0.0",
-		"chart.js": "^4.5.0",
+		"@tanstack/react-query": "^5.90.12",
+		"@trpc/client": "^11.8.0",
+		"@trpc/react-query": "^11.8.0",
+		"@trpc/server": "^11.8.0",
+		"chart.js": "^4.5.1",
 		"class-variance-authority": "^0.7.1",
 		"clsx": "^2.1.1",
 		"drizzle-orm": "^0.41.0",
-		"ioredis": "^5.7.0",
+		"ioredis": "^5.8.2",
 		"lucide-react": "^0.536.0",
-		"next": "15.2.8",
-		"next-auth": "5.0.0-beta.25",
-		"postgres": "^3.4.4",
-		"react": "^19.0.0",
-		"react-chartjs-2": "^5.3.0",
-		"react-dom": "^19.0.0",
+		"next": "^15.4.7",
+		"next-auth": "^5.0.0-beta.30",
+		"postgres": "^3.4.7",
+		"react": "^19.2.3",
+		"react-chartjs-2": "^5.3.1",
+		"react-dom": "^19.2.3",
 		"server-only": "^0.0.1",
-		"superjson": "^2.2.1",
+		"superjson": "^2.2.6",
 		"tailwind-merge": "^3.4.0",
-		"zod": "^3.24.2"
+		"zod": "^3.25.76"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "1.9.4",
-		"@tailwindcss/postcss": "^4.0.15",
-		"@types/node": "^20.14.10",
-		"@types/react": "^19.0.0",
-		"@types/react-dom": "^19.0.0",
-		"dotenv": "^17.2.1",
-		"drizzle-kit": "^0.30.5",
-		"postcss": "^8.5.3",
-		"tailwindcss": "^4.0.15",
-		"tsx": "^4.20.3",
-		"typescript": "^5.8.2"
+		"@tailwindcss/postcss": "^4.1.18",
+		"@types/node": "^20.19.27",
+		"@types/react": "^19.2.7",
+		"@types/react-dom": "^19.2.3",
+		"dotenv": "^17.2.3",
+		"drizzle-kit": "^0.30.6",
+		"postcss": "^8.5.6",
+		"tailwindcss": "^4.1.18",
+		"tsx": "^4.21.0",
+		"typescript": "^5.9.3"
 	},
 	"ct3aMetadata": {
 		"initVersion": "7.39.3"
 	},
-	"packageManager": "pnpm@10.12.4"
+	"packageManager": "pnpm@10.12.4",
+	"pnpm": {
+		"overrides": {
+			"esbuild": ">=0.25.0"
+		}
+	}
 }
