@@ -12,6 +12,7 @@ import {
 } from 'chart.js';
 import type { ChartOptions } from 'chart.js';
 import { Line } from 'react-chartjs-2';
+import { getBankStyling } from '../utils/bank-styling';
 
 ChartJS.register(
 	CategoryScale,
@@ -41,17 +42,24 @@ interface CompareChartProps {
 	rateType: 'telegraphicBuying' | 'selling' | 'buying';
 }
 
-// Color palette for different banks
-const BANK_COLORS = [
-	{ border: 'rgb(59, 130, 246)', background: 'rgba(59, 130, 246, 0.1)' }, // Blue
-	{ border: 'rgb(34, 197, 94)', background: 'rgba(34, 197, 94, 0.1)' }, // Green
-	{ border: 'rgb(168, 85, 247)', background: 'rgba(168, 85, 247, 0.1)' }, // Purple
-	{ border: 'rgb(251, 146, 60)', background: 'rgba(251, 146, 60, 0.1)' }, // Orange
-	{ border: 'rgb(236, 72, 153)', background: 'rgba(236, 72, 153, 0.1)' }, // Pink
-	{ border: 'rgb(14, 165, 233)', background: 'rgba(14, 165, 233, 0.1)' }, // Sky
-	{ border: 'rgb(132, 204, 22)', background: 'rgba(132, 204, 22, 0.1)' }, // Lime
-	{ border: 'rgb(244, 63, 94)', background: 'rgba(244, 63, 94, 0.1)' }, // Rose
-];
+// Map bank accent colors to RGB values for Chart.js
+function getBankColor(bankCode: string): { border: string; background: string } {
+	const styling = getBankStyling(bankCode);
+	
+	// Map Tailwind color names to RGB values (using 600 shade for border, 0.1 opacity for background)
+	switch (styling.accent) {
+		case 'blue':
+			return { border: 'rgb(37, 99, 235)', background: 'rgba(37, 99, 235, 0.1)' }; // blue-600
+		case 'red':
+			return { border: 'rgb(220, 38, 38)', background: 'rgba(220, 38, 38, 0.1)' }; // red-600
+		case 'amber':
+			return { border: 'rgb(217, 119, 6)', background: 'rgba(217, 119, 6, 0.1)' }; // amber-600
+		case 'purple':
+			return { border: 'rgb(147, 51, 234)', background: 'rgba(147, 51, 234, 0.1)' }; // purple-600
+		default:
+			return { border: 'rgb(75, 85, 99)', background: 'rgba(75, 85, 99, 0.1)' }; // gray-600
+	}
+}
 
 export function CompareChart({ data, rateType }: CompareChartProps) {
 	if (!data || data.length === 0) {
@@ -142,8 +150,8 @@ export function CompareChart({ data, rateType }: CompareChartProps) {
 
 	const chartData = {
 		labels,
-		datasets: data.map((bank, index) => {
-			const color = BANK_COLORS[index % BANK_COLORS.length];
+		datasets: data.map((bank) => {
+			const color = getBankColor(bank.bankCode);
 
 			// Create a map of rounded timestamp to rate for this bank
 			const rateMap = new Map<string, number>();
