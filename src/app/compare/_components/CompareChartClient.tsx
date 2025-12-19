@@ -11,23 +11,12 @@ import {
 	SelectValue,
 } from "~/app/_components/ui/select";
 import { CompareChartSkeletonChart } from "./CompareSkeleton";
+import type { RouterOutputs } from "~/trpc/react";
 
 type RateType = 'telegraphicBuying' | 'selling' | 'buying';
 type TimeRange = 7 | 30 | 90;
 
-interface BankRate {
-	scrapedAt: Date;
-	buyingRate: string | null;
-	sellingRate: string | null;
-	telegraphicBuyingRate: string | null;
-}
-
-interface BankData {
-	bankId: number;
-	bankCode: string;
-	bankName: string;
-	rates: BankRate[];
-}
+type BankData = RouterOutputs["exchangeRates"]["getAllBanksHistory"][number];
 
 interface CompareChartClientProps {
 	banksData: BankData[];
@@ -43,10 +32,12 @@ export default function CompareChartClient({ banksData: initialBanksData }: Comp
 	const [selectedRateType, setSelectedRateType] = useState<RateType>('telegraphicBuying');
 	const [selectedDays, setSelectedDays] = useState<TimeRange>(7);
 	
+	type AllBanksHistory = RouterOutputs["exchangeRates"]["getAllBanksHistory"];
+	
 	const { data: banksData, isLoading } = api.exchangeRates.getAllBanksHistory.useQuery(
 		{ days: selectedDays },
 		{
-			initialData: selectedDays === 7 ? initialBanksData : undefined,
+			initialData: (selectedDays === 7 ? initialBanksData : undefined) as AllBanksHistory | undefined,
 		}
 	);
 

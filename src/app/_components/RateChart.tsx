@@ -156,6 +156,9 @@ export function RateChart({ data, bankName }: RateChartProps) {
 						});
 					},
 					label: function(context) {
+						if (context.parsed.y === null || context.parsed.y === undefined) {
+							return `${context.dataset.label}: N/A`;
+						}
 						return `${context.dataset.label}: ${context.parsed.y.toFixed(2)} LKR`;
 					},
 				},
