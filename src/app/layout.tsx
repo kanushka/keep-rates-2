@@ -9,7 +9,27 @@ export const metadata: Metadata = {
 	title: "Keep Rates - USD/LKR Exchange Rate Tracker",
 	description: "Track real-time USD/LKR exchange rates from Sri Lanka's leading banks. Get daily updates, historical data, and tax year summaries for informed currency exchange decisions.",
 	keywords: "USD LKR exchange rate, Sri Lanka currency, Commercial Bank, NDB Bank, Sampath Bank, Central Bank",
-	icons: [{ rel: "icon", url: "/favicon.ico" }],
+	icons: {
+		icon: [
+			{ url: "/favicon/favicon-16x16.png", sizes: "16x16", type: "image/png" },
+			{ url: "/favicon/favicon-32x32.png", sizes: "32x32", type: "image/png" },
+			{ url: "/favicon/favicon.ico", sizes: "any" },
+		],
+		apple: [
+			{ url: "/favicon/apple-touch-icon.png", sizes: "180x180", type: "image/png" },
+		],
+		other: [
+			{
+				rel: "android-chrome-192x192",
+				url: "/favicon/android-chrome-192x192.png",
+			},
+			{
+				rel: "android-chrome-512x512",
+				url: "/favicon/android-chrome-512x512.png",
+			},
+		],
+	},
+	manifest: "/favicon/site.webmanifest",
 	openGraph: {
 		title: "Keep Rates - USD/LKR Exchange Rate Tracker",
 		description: "Track real-time USD/LKR exchange rates from Sri Lanka's leading banks",
